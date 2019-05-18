@@ -6,11 +6,13 @@ services:
     restart: always
     build:
       context: ./app
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.docker.dev
     depends_on:
       - server
     volumes:
       - ./app/src:/usr/src/app/src
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     networks:
       network:
         aliases:
@@ -21,7 +23,7 @@ services:
     restart: always
     build:
       context: ./server
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.docker.dev
     depends_on:
       - mysql
     volumes:
@@ -65,6 +67,7 @@ services:
       network:
         aliases:
           - elara-mysql-ip-service
+
 
 networks:
   network:
