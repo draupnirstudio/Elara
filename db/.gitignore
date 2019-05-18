@@ -1,0 +1,7 @@
+*
+
+!.gitignore
+
+!mysql-conf/
+!mysql-conf/*
+

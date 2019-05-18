@@ -1,0 +1,74 @@
+version: '3.1'
+
+services:
+  app:
+    container_name: elara-app
+    restart: always
+    build:
+      context: ./app
+      dockerfile: Dockerfile.docker.dev
+    depends_on:
+      - server
+    volumes:
+      - ./app/src:/usr/src/app/src
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      network:
+        aliases:
+          - elara-app-ip-service
+
+  server:
+    container_name: elara-server
+    restart: always
+    build:
+      context: ./server
+      dockerfile: Dockerfile.docker.dev
+    depends_on:
+      - mysql
+    volumes:
+      - ./server/src:/home/node/app/src
+    networks:
+      network:
+        aliases:
+          - elara-server-ip-service
+
+  nginx:
+    container_name: elara-nginx
+    restart: always
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+    depends_on:
+      - server
+      - app
+    networks:
+      network:
+        aliases:
+          - elara-nginx-ip-service
+
+  mysql:
+    image: mysql:5.7
+    container_name: elara-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/mysql:/var/lib/mysql
+      - ./db/mysql-conf/:/etc/mysql/
+    environment:
+      MYSQL_DATABASE:  "${DB_DATABASE}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_USER: "${DB_USERNAME}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    networks:
+      network:
+        aliases:
+          - elara-mysql-ip-service
+
+
+networks:
+  network:
+    driver: bridge

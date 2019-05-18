@@ -1,0 +1,17 @@
+FROM node:10.15.3-jessie
+
+WORKDIR /usr/src/app
+
+COPY package.json .
+COPY package-lock.json .
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+COPY ./docker/wait-for-it.sh ./wait-for-it.sh
+RUN chmod +x ./wait-for-it.sh
+
+CMD ["./wait-for-it.sh", "server:5000", "--", "npm", "run", "start"]
+

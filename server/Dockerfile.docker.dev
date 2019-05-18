@@ -1,0 +1,25 @@
+# Check out https://hub.docker.com/_/node to select a new base image
+FROM node:10.15.3-jessie
+
+# Create app directory (with user `node`)
+RUN mkdir -p /home/node/app
+
+WORKDIR /home/node/app
+
+# Install app dependencies
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# where available (npm@5+)
+COPY package*.json ./
+
+RUN npm install
+
+# Bundle app source code
+COPY . .
+
+EXPOSE 5000
+
+COPY ./docker/wait-for-it.sh ./wait-for-it.sh
+RUN chmod +x ./wait-for-it.sh
+
+CMD ["./wait-for-it.sh", "mysql:3306", "--", "npm", "run" , "dev"]
+
