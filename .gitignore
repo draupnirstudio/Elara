@@ -1,0 +1,14 @@
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+travis/gienah-gce-service-account.json
+
+.env
+
+*.iws
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/workspace.xml
