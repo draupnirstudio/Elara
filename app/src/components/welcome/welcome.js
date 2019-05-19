@@ -1,0 +1,13 @@
+import React from 'react';
+
+class Welcome extends React.Component {
+  render() {
+    return (
+      <div style={{textAlign: "center"}}>
+        <p>Welcome to Auction System</p>
+      </div>
+    );
+  }
+}
+
+export default Welcome;

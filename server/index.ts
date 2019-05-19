@@ -19,10 +19,6 @@ app.get('/', (req, res) => {
 io.on('connection', (socket: any) => {
   console.log('a user connected');
   
-  setTimeout(() => {
-    socket.emit('FromAPI', 'lalala');
-  }, 5000);
-  
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
