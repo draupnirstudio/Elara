@@ -17,15 +17,11 @@
     "no-misused-new": true,
     "no-shadowed-variable": true,
     "no-string-throw": true,
-//    "no-unused": [true, "ignore-parameters"],
     "no-unused-expression": true,
     "no-var-keyword": true,
     "triple-equals": [true, "allow-null-check", "allow-undefined-check"],
     "array-type": false,
     "arrow-parens": false,
-//    "deprecation": {
-//      "severity": "warn"
-//    },
     "import-blacklist": [
       true,
       "rxjs/Rx"
@@ -65,7 +61,6 @@
     "no-non-null-assertion": true,
     "no-redundant-jsdoc": true,
     "no-switch-case-fall-through": true,
-//    "no-use-before-declare": true,
     "no-var-requires": false,
     "object-literal-key-quotes": [
       true,
@@ -78,15 +73,5 @@
       "single"
     ],
     "trailing-comma": false
-//    "no-output-on-prefix": true,
-//    "use-input-property-decorator": true,
-//    "use-output-property-decorator": true,
-//    "use-host-property-decorator": true,
-//    "no-input-rename": true,
-//    "no-output-rename": true,
-//    "use-life-cycle-interface": true,
-//    "use-pipe-transform-interface": true,
-//    "component-class-suffix": true,
-//    "directive-class-suffix": true
   }
 }

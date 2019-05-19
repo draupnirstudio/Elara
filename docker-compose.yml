@@ -9,8 +9,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
-    volumes:
-      - ./app/src:/usr/src/app/src
     networks:
       network:
         aliases:
@@ -24,8 +22,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - mysql
-    volumes:
-      - ./server/src:/home/node/app/src
     networks:
       network:
         aliases:
