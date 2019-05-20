@@ -12,7 +12,11 @@ class EnglishAuction extends React.Component {
   }
   
   componentDidMount() {
-    // socket.emit("hello", "world");
+    socket.emit("english-auction-user-connect");
+  }
+  
+  componentWillUnmount() {
+    socket.emit("english-auction-user-disconnect");
   }
   
   render() {

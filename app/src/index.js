@@ -18,7 +18,9 @@ ReactDOM.render(
         <div className="four wide column">
           <div className="ui vertical fluid tabular menu">
             
-            <NavLink className='item' exact={true} activeClassName='active' to={`/`}>App</NavLink>
+            <NavLink className='item' exact={true} activeClassName='active' to={`/`}>
+              Welcome
+            </NavLink>
             <NavLink className='item' activeClassName='active' to={`/english-auction`}>
               English Auction
             </NavLink>
