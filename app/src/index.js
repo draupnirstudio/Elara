@@ -1,42 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import * as serviceWorker from './serviceWorker';
-import {HashRouter as Router, NavLink, Route} from 'react-router-dom'
+import {HashRouter as Router, Route} from 'react-router-dom'
 
 import './index.css';
 import 'semantic-ui-css/semantic.min.css';
 
-import Welcome from './components/welcome/welcome';
-import EnglishAuction from "./components/english-auction/english-auction";
-
+import Auction from './components/auction/auction';
+import Admin from './components/admin/admin';
 
 ReactDOM.render(
   <Router>
-    <div>
-      
-      <div className="ui grid">
-        <div className="four wide column">
-          <div className="ui vertical fluid tabular menu">
-            
-            <NavLink className='item' exact={true} activeClassName='active' to={`/`}>
-              Welcome
-            </NavLink>
-            <NavLink className='item' activeClassName='active' to={`/english-auction`}>
-              English Auction
-            </NavLink>
-          
-          </div>
-        </div>
-        <div className="twelve wide stretched column">
-          <div className="ui segment">
-            <main>
-              
-              <Route exact={true} path="/" component={Welcome}/>
-              <Route path="/english-auction" component={EnglishAuction}/>
-              
-            </main>
-          </div>
-        </div>
+    <div className="content-wrapper">
+      <div className="ui segment">
+        <main>
+          <Route exact={true} path="/" component={Auction}/>
+          <Route path="/admin" component={Admin}/>
+        </main>
       </div>
     </div>
   </Router>,

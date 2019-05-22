@@ -1,3 +1,5 @@
+import * as _ from 'lodash';
+
 class ElaraStorage {
   isAvailable = false;
   
@@ -9,29 +11,27 @@ class ElaraStorage {
   }
   
   get(key) {
-    let value;
+    let value = null;
     try {
       value = localStorage.getItem(key);
-      return JSON.parse(value);
+      if(_.isObject(value)) {
+        return JSON.parse(value);
+      }
+      return value;
     } catch (e) {
-      console.debug('localStorage get error:', e);
+      console.error('localStorage get error:', e);
       return value;
     }
   }
   
   set(key, value) {
-    let valueToSave;
-    if (typeof value === 'object') {
-      valueToSave = JSON.stringify(value);
-    } else {
-      valueToSave = value;
-    }
-    
+    const _value = _.isObject(value) ? JSON.stringify(value) : value;
+
     try {
-      localStorage.setItem(key, valueToSave);
+      localStorage.setItem(key, _value);
       return true;
     } catch (e) {
-      console.error('localStorage error:', e);
+      console.error('localStorage set error:', e);
       return false;
     }
   }
@@ -40,7 +40,7 @@ class ElaraStorage {
     try {
       localStorage.removeItem(key);
     } catch (e) {
-      console.error('localStorage error:', e);
+      console.error('localStorage remove error:', e);
     }
   }
 }

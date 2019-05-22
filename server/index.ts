@@ -2,13 +2,14 @@ import * as express from 'express';
 import * as morgan from 'morgan';
 import * as helmet from 'helmet';
 import * as http from 'http';
-import {englishAuctionHandler} from './src/english-auction';
 import {generateUserId} from './src/helpers/userId-generator';
 import * as _ from 'lodash';
+import * as sio from 'socket.io';
+import {auctionHandler} from './src/auction';
 
 const app: express.Application = express();
 const server = new http.Server(app);
-const io = require('socket.io')(server);
+const io = sio(server);
 
 const port = 5000;
 
@@ -25,27 +26,22 @@ io.on('connection', (socket: any) => {
   let userId: string;
   
   socket.on('user-connect', (data: any) => {
-    console.log(data);
-    
     const _userId = _.get(data, 'userId');
     
     if (_.isNil(_userId)) {
       userId = generateUserId();
+      socket.emit('user-id-generated', {
+        userId
+      });
     } else {
       userId = _userId;
     }
     
     users.push(userId);
     
-    socket.emit('user-id-generated', {
-      userId
-    });
-  
-    console.log('a user connected:', userId, users);
-  
-    englishAuctionHandler(socket, userId);
+    console.log('user connected:', userId, users.length, users);
+    auctionHandler(socket, userId);
   });
-  
   
   socket.on('disconnect', () => {
     _.remove(users, (u) => u === userId);
