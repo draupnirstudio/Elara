@@ -7,7 +7,7 @@
     "start": "npm run build && node dist/index.js",
     "build": "tsc",
     "lint": "tslint -c tslint.json index.ts 'src/**/*.ts'",
-    "dev": "ts-node-dev --respawn --transpileOnly index.ts"
+    "dev": "nodemon --legacy-watch"
   },
   "repository": {
     "type": "git",
@@ -40,7 +40,7 @@
     "@types/redis": "^2.8.12",
     "@types/socket.io": "^2.1.2",
     "@types/winston": "^2.4.4",
-    "nodemon": "^1.19.0",
+    "nodemon": "^1.19.1",
     "ts-node-dev": "^1.0.0-pre.39",
     "tslint": "^5.16.0",
     "tslint-consistent-codestyle": "^1.15.1",

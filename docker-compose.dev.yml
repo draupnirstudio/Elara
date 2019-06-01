@@ -69,7 +69,6 @@ services:
         aliases:
           - elara-mysql-ip-service
 
-
 networks:
   network:
     driver: bridge
