@@ -42,18 +42,9 @@ io.on('connection', (socket: any) => {
     
     console.log('user connected:', userId, users.length, users);
   
-    auctionHandler(socket, userId);
+    auctionHandler(io, socket, userId);
     
-    if (auction.isAuctionStarted) {
-      socket.emit('auction-start', {
-        auctionType: auction.auctionType,
-        defaultMoney: auction.defaultMoney,
-        currentRound: auction.currentRound,
-        currentPrice: auction.currentPrice
-      });
-    } else {
-      auction.stopAuction(socket);
-    }
+    auction.resumeAuction(socket, userId);
   });
   
   socket.on('disconnect', () => {

@@ -1,11 +1,11 @@
-import {Socket} from 'socket.io';
+import {Server, Socket} from 'socket.io';
 import {AuctionType} from './auction-type';
 import {auction} from './auction';
 
 
-export function auctionHandler(socket: Socket, userId: string) {
+export function auctionHandler(io: Server, socket: Socket, userId: string) {
   socket.on('start-english-auction-admin', (data: any) => {
-    auction.startAuction(socket, AuctionType.EnglishAuction);
+    auction.startAllAuction(io, socket, AuctionType.EnglishAuction);
     console.log('auction started:', AuctionType.EnglishAuction);
   });
   
@@ -14,7 +14,7 @@ export function auctionHandler(socket: Socket, userId: string) {
   });
   
   socket.on('stop-auction-admin', (data: any) => {
-    auction.stopAuction(socket);
+    auction.stopAllAuction(io);
     console.log('auction stopped:', auction.auctionType);
   });
 }

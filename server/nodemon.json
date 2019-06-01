@@ -4,6 +4,6 @@
     "index.ts",
     "src/**"
   ],
-  "ext": "*",
-  "exec": "ts-node-dev --respawn --transpileOnly index.ts"
+  "ext": "ts",
+  "exec": "ts-node-dev --transpileOnly index.ts"
 }

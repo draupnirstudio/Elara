@@ -25,19 +25,19 @@ class Admin extends React.Component {
     });
   
   
-    socket.on('auction-start-admin', (data) => {
+    socket.on('auction-start', (data) => {
       console.log('auction-start', data);
     
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
-        defaultMoney: data.defaultMoney,
+        defaultMoney: data.money,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound
       });
     });
   
-    socket.on('auction-stop-admin', (data) => {
+    socket.on('auction-stop', (data) => {
       console.log('auction stop');
       this.setState({
         isAuctionStart: false,
@@ -46,6 +46,25 @@ class Admin extends React.Component {
         currentRound: 0,
         nextPrice: 0
       })
+    });
+    
+    socket.on('next-round-admin', data => {
+      console.log('next round', data);
+      this.setState({
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      })
+    });
+  
+    socket.on('resume-auction', (data) => {
+      console.log('auction-resumed', data);
+    
+      this.setState({
+        isAuctionStart: true,
+        auctionType: data.auctionType,
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      });
     });
     
   }
@@ -78,13 +97,13 @@ class Admin extends React.Component {
           <button className="ui button" disabled={this.state.isAuctionStart} onClick={this.startEnglishAuction}>
             Start English Auction
           </button>
-          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startNextRound}>
+          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.stopAuction}>
             Stop Auction
           </button>
         </div>
         
         <div>
-          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startEnglishAuction}>
+          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startNextRound}>
             Start Next Round
           </button>
         </div>

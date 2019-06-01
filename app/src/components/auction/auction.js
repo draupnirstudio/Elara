@@ -25,7 +25,7 @@ class Auction extends React.Component {
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
-        money: data.defaultMoney,
+        money: data.money,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound
       });
@@ -39,9 +39,26 @@ class Auction extends React.Component {
       })
     });
     
-    socket.on('english-auction-round-start', (data) => {
-      console.log('english-auction-round-start', data);
-    })
+    socket.on('next-round', data => {
+      console.log('next round', data);
+      this.setState({
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      })
+    });
+  
+    socket.on('resume-auction', (data) => {
+      console.log('auction-resumed', data);
+    
+      this.setState({
+        isAuctionStart: true,
+        auctionType: data.auctionType,
+        money: data.money,
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      });
+    });
+    
   }
   
   bid() {
