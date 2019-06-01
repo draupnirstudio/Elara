@@ -21,7 +21,6 @@ app.get('/', (req, res) => {
   res.send({response: 'I am alive'}).status(200);
 });
 
-const users: string[] = [];
 
 io.on('connection', (socket: any) => {
   let userId: string;
@@ -38,18 +37,16 @@ io.on('connection', (socket: any) => {
       userId = _userId;
     }
     
-    users.push(userId);
-    
-    console.log('user connected:', userId, users.length, users);
+    console.log('user connected:', userId);
+  
+    auction.resumeAuction(socket, userId);
   
     auctionHandler(io, socket, userId);
-    
-    auction.resumeAuction(socket, userId);
   });
   
   socket.on('disconnect', () => {
-    _.remove(users, (u) => u === userId);
-    console.log('user disconnected:', userId, users);
+    // _.remove(users, (u) => u === userId);
+    console.log('user disconnected:', userId);
   });
 });
 

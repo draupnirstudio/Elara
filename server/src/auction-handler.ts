@@ -17,4 +17,12 @@ export function auctionHandler(io: Server, socket: Socket, userId: string) {
     auction.stopAllAuction(io);
     console.log('auction stopped:', auction.auctionType);
   });
+  
+  
+  
+  
+  socket.on('bid',(data: any) => {
+  
+  })
+  
 }

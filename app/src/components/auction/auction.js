@@ -61,8 +61,10 @@ class Auction extends React.Component {
     
   }
   
-  bid() {
-    console.log(this.state.bidMoney);
+  bid(price) {
+    socket.emit('bid', {
+      bid: price
+    });
   }
   
   
