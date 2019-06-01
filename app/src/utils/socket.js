@@ -1,7 +1,7 @@
 import socketClient from "socket.io-client";
 import {storageClient} from "./storage";
 
-const socketEndpoint = "http://localhost/";
+const socketEndpoint = "/";
 const socketPath = "/socket";
 
 export const socket = socketClient(socketEndpoint, {path: socketPath});
