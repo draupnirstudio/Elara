@@ -5,7 +5,8 @@ import * as http from 'http';
 import {generateUserId} from './src/helpers/userId-generator';
 import * as _ from 'lodash';
 import * as sio from 'socket.io';
-import {auctionHandler} from './src/auction';
+import {auctionHandler} from './src/auction-handler';
+import {auction} from './src/auction';
 
 const app: express.Application = express();
 const server = new http.Server(app);
@@ -40,7 +41,19 @@ io.on('connection', (socket: any) => {
     users.push(userId);
     
     console.log('user connected:', userId, users.length, users);
+  
     auctionHandler(socket, userId);
+    
+    if (auction.isAuctionStarted) {
+      socket.emit('auction-start', {
+        auctionType: auction.auctionType,
+        defaultMoney: auction.defaultMoney,
+        currentRound: auction.currentRound,
+        currentPrice: auction.currentPrice
+      });
+    } else {
+      auction.stopAuction(socket);
+    }
   });
   
   socket.on('disconnect', () => {

@@ -8,11 +8,46 @@ class Admin extends React.Component {
     super(props);
     
     this.state = {
-      auctionType: NoAuction
+      auctionType: NoAuction,
+      isAuctionStart: false,
+      currentPrice: 0,
+      currentRound: 0,
+      defaultMoney: 0,
+      nextPrice: 0,
     };
   }
   
   componentDidMount() {
+    socket.on('next-round-price-admin', (data) => {
+      this.setState({
+        nextPrice: data.nextPrice
+      })
+    });
+  
+  
+    socket.on('auction-start-admin', (data) => {
+      console.log('auction-start', data);
+    
+      this.setState({
+        isAuctionStart: true,
+        auctionType: data.auctionType,
+        defaultMoney: data.defaultMoney,
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      });
+    });
+  
+    socket.on('auction-stop-admin', (data) => {
+      console.log('auction stop');
+      this.setState({
+        isAuctionStart: false,
+        auctionType: data.auctionType,
+        currentPrice: 0,
+        currentRound: 0,
+        nextPrice: 0
+      })
+    });
+    
   }
   
   componentWillUnmount() {
@@ -25,11 +60,8 @@ class Admin extends React.Component {
     })
   };
   
-  startNewRound() {
-    const currentPrice = 10;
-    socket.emit("english-auction-start-new-round-admin", {
-      currentPrice: 10
-    });
+  startNextRound() {
+    socket.emit("start-next-round-admin");
   }
   
   stopAuction = () => {
@@ -43,16 +75,34 @@ class Admin extends React.Component {
     return (
       <div>
         <div style={{marginBottom: '10px'}}>
-          <button className="ui button" onClick={this.startEnglishAuction}>
+          <button className="ui button" disabled={this.state.isAuctionStart} onClick={this.startEnglishAuction}>
             Start English Auction
           </button>
-          <button className="ui button" onClick={this.stopAuction}>
+          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startNextRound}>
             Stop Auction
+          </button>
+        </div>
+        
+        <div>
+          <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startEnglishAuction}>
+            Start Next Round
           </button>
         </div>
         
         <div style={{marginBottom: '10px'}}>
           Auction Status: {this.state.auctionType}
+        </div>
+        
+        <div style={{marginBottom: '10px'}}>
+          current round: {this.state.currentRound}
+        </div>
+  
+        <div style={{marginBottom: '10px'}}>
+          current price: {this.state.currentPrice}
+        </div>
+        
+        <div style={{marginBottom: '10px'}}>
+          next price: <input type="text" value={this.state.nextPrice}/>
         </div>
         
         <div>

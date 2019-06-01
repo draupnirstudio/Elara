@@ -19,14 +19,16 @@ class Auction extends React.Component {
   }
   
   componentDidMount() {
-    socket.emit('auction-user-connect');
-    
     socket.on('auction-start', (data) => {
       console.log('auction-start', data);
+      
       this.setState({
         isAuctionStart: true,
-        auctionType: data.auctionType
-      })
+        auctionType: data.auctionType,
+        money: data.defaultMoney,
+        currentPrice: data.currentPrice,
+        currentRound: data.currentRound
+      });
     });
     
     socket.on('auction-stop', (data) => {
@@ -37,10 +39,8 @@ class Auction extends React.Component {
       })
     });
     
-    
     socket.on('english-auction-round-start', (data) => {
       console.log('english-auction-round-start', data);
-      
     })
   }
   
