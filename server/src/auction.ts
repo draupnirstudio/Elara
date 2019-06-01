@@ -1,79 +1,137 @@
 import {AuctionType} from './auction-type';
 import {Server, Socket} from 'socket.io';
 import {User} from './user';
+import {generateAuctionId} from './helpers/auction-id-generator';
+
+import {query} from './lib/mysql-connector';
+import {AuctionPriceGeneratorAlgorithm, generateAuctionPrice} from './helpers/auction-price-generator';
 import _ = require('lodash');
 
 class Auction {
   isAuctionStarted = false;
+  
   auctionType: AuctionType = AuctionType.NoAuction;
+  auctionId: string;
   currentRound = 0;
   currentPrice = 0;
+  nextPrice = 0;
   defaultMoney = 1000;
-  priceList: number[] = [77.6005722, 82.49552303, 86.55877974, 82.41900139, 60.3182416, 56.16922002, 67.31837755, 55.19294244, 80.16425166, 82.18311577, 60.49431266, 69.28826512, 65.61803702, 66.46525487, 81.03760442, 51.35115743, 64.56088878, 79.56828498, 97.04283086, 64.63490765, 79.0280886, 56.0338786, 79.714225, 82.89652694, 46.70962404, 82.25331049, 67.18794555, 52.92877959, 53.41817901, 64.61678833, 86.59124757, 81.51014393, 75.21162171, 80.83279466, 58.52799935];
+  
   users: User[] = [];
   
-  startAllAuction(io: Server, socket: Socket, auctionType: AuctionType) {
+  mean: number = 70;
+  dev = 10;
+  algorithm: AuctionPriceGeneratorAlgorithm = AuctionPriceGeneratorAlgorithm.NormalDistribution;
+  
+  priceList: number[] = [];
+  
+  async startAllAuction(io: Server, socket: Socket, auctionType: AuctionType) {
     this.isAuctionStarted = true;
     this.auctionType = auctionType;
-    this.currentRound = 1;
-    this.currentPrice = auction.priceList[this.currentRound];
-    
-    io.sockets.emit('auction-start', {
-      auctionType: this.auctionType,
-      money: this.defaultMoney,
-      currentRound: this.currentRound,
-      currentPrice: this.currentPrice
+    this.currentRound = 0;
+    this.currentPrice = 0;
+    this.nextPrice = generateAuctionPrice(this.mean, this.dev, this.algorithm);
+    this.users.forEach((u) => {
+      u.money = this.defaultMoney;
+      u.bidHistory = [];
     });
+    this.auctionId = generateAuctionId();
     
-    // TODO: array out-range error
-    socket.emit('next-round-price-admin', {
-      nextPrice: this.priceList[this.currentRound + 1]
-    });
+    try {
+      await query(`INSERT INTO auctions
+                   VALUES (?, ?, ?, ?, ?)`, [this.auctionId, this.mean, this.dev, this.auctionType, this.algorithm]);
+      
+      await query(`CREATE TABLE IF NOT EXISTS ${this.auctionId}_record
+                   (
+                       id          int primary key auto_increment,
+                       user        varchar(255) not null,
+                       round       int          not null,
+                       bid         double       not null,
+                       startMoney  double       not null,
+                       remainMoney double       not null
+                   )`);
+      
+      await query(`CREATE TABLE IF NOT EXISTS ${this.auctionId}_price
+                   (
+                        round       int   primary key,
+                        price double not null
+                   )`);
+      
+      io.sockets.emit('auction-start', {
+        auctionType: this.auctionType,
+        money: this.defaultMoney,
+        currentRound: this.currentRound,
+        currentPrice: this.currentPrice,
+        currentBid: 0
+      });
+      
+      socket.emit('next-round-price-admin', {
+        nextPrice: this.nextPrice
+      });
+      
+      console.log('auction: ', this.auctionId, ' start!');
+    } catch (e) {
+      console.error(e);
+      socket.emit('auction-start-error', {
+        error: e.toString()
+      });
+    }
   }
   
-  startNextRound(socket: Socket) {
+  async startNextRound(io: Server, socket: Socket, thisRoundPrice?: number) {
     this.currentRound += 1;
-    this.currentPrice = auction.priceList[this.currentRound];
+    this.currentPrice = thisRoundPrice || this.nextPrice;
     
-    socket.broadcast.emit('next-round', {
-      currentRound: this.currentRound,
-      currentPrice: this.currentPrice
-    });
+    try {
+      await query(`INSERT INTO ${this.auctionId}_price
+                   VALUES (?, ?) `, [this.currentRound, this.currentPrice]);
+      
+      this.priceList.push(this.currentPrice);
+      
+      io.sockets.emit('next-round', {
+        currentRound: this.currentRound,
+        currentPrice: this.currentPrice,
+        currentBid: 0,
+        hasBid: false
+      });
+      
+      this.nextPrice = generateAuctionPrice(this.mean, this.dev, this.algorithm);
+      socket.emit('next-round-price-admin', {
+        nextPrice: this.nextPrice
+      });
+    } catch (e) {
+      console.error(e);
+      socket.emit('next-round-start-error', {
+        error: e.toString()
+      });
+    }
     
-    socket.emit('next-round-admin', {
-      currentRound: this.currentRound,
-      currentPrice: this.currentPrice
-    });
-    
-    socket.emit('next-round-price-admin', {
-      nextPrice: this.priceList[this.currentRound + 1]
-    });
   }
   
   resumeAuction(socket: Socket, userId: string) {
     let user: User = _.findLast(this.users, user => user.userId === userId) as any;
     
-    if(_.isNil(user)) {
+    if (_.isNil(user)) {
       user = new User(userId, this.defaultMoney);
       this.users.push(user);
     }
-  
-    console.log(this.users);
+    
+    console.log(this.users, this.users.length);
     
     if (!this.isAuctionStarted) {
       this.stopAuction(socket);
       return;
     }
-  
+    
+    const currentBidResult = _.findLast(user.bidHistory, (u) => u.round === this.currentRound);
+    
     socket.emit('resume-auction', {
       auctionType: this.auctionType,
-      money: user.money, // TODO: restore saved money
+      money: user.money,
       currentRound: this.currentRound,
-      currentPrice: this.currentPrice
-    });
-  
-    socket.emit('next-round-price-admin', {
-      nextPrice: this.priceList[this.currentRound + 1]
+      currentPrice: this.currentPrice,
+      currentBid: currentBidResult ? currentBidResult.bid : 0,
+      hasBid: !_.isNil(_.findLast(user.bidHistory, (u) => u.round === this.currentRound))
     });
   }
   
@@ -95,7 +153,17 @@ class Auction {
     });
   }
   
-  
+  bid(socket: Socket, bidPrice: number, userId: string) {
+    let user: User = _.findLast(this.users, user => user.userId === userId) as any;
+    
+    user.bid(this.currentRound, bidPrice);
+    
+    socket.emit('bid-successful', {
+      money: user.money,
+      currentBid: bidPrice,
+      hasBid: true
+    })
+  }
 }
 
 export const auction = new Auction();

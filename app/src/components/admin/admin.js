@@ -48,7 +48,7 @@ class Admin extends React.Component {
       })
     });
     
-    socket.on('next-round-admin', data => {
+    socket.on('next-round', data => {
       console.log('next round', data);
       this.setState({
         currentPrice: data.currentPrice,

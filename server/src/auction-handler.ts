@@ -4,13 +4,13 @@ import {auction} from './auction';
 
 
 export function auctionHandler(io: Server, socket: Socket, userId: string) {
-  socket.on('start-english-auction-admin', (data: any) => {
-    auction.startAllAuction(io, socket, AuctionType.EnglishAuction);
+  socket.on('start-english-auction-admin', async (data: any) => {
+    await auction.startAllAuction(io, socket, AuctionType.EnglishAuction);
     console.log('auction started:', AuctionType.EnglishAuction);
   });
   
-  socket.on('start-next-round-admin', (data: any) => {
-    auction.startNextRound(socket);
+  socket.on('start-next-round-admin', async (data: any) => {
+    await auction.startNextRound(io, socket);
   });
   
   socket.on('stop-auction-admin', (data: any) => {
@@ -21,8 +21,8 @@ export function auctionHandler(io: Server, socket: Socket, userId: string) {
   
   
   
-  socket.on('bid',(data: any) => {
-  
+  socket.on('bid',(data: {bid: number}) => {
+    auction.bid(socket, data.bid, userId);
   })
   
 }

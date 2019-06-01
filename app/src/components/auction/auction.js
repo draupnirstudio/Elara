@@ -1,6 +1,6 @@
 import React from 'react';
 import {socket} from "../../utils/socket";
-import {EnglishAuctionForm} from "../english-auction/english-auction-form";
+import {AuctionForm} from "../auction-form/auction-form";
 import {EnglishAuction, NoAuction} from "../../constants/auction-type";
 
 
@@ -13,8 +13,9 @@ class Auction extends React.Component {
       auctionType: NoAuction,
       currentPrice: 0,
       currentRound: 0,
+      currentBid: 0,
       money: 0,
-      bidMoney: 0
+      hasBid: false
     };
   }
   
@@ -27,7 +28,9 @@ class Auction extends React.Component {
         auctionType: data.auctionType,
         money: data.money,
         currentPrice: data.currentPrice,
-        currentRound: data.currentRound
+        currentRound: data.currentRound,
+        currentBid: data.currentBid,
+        hasBid: false
       });
     });
     
@@ -35,7 +38,8 @@ class Auction extends React.Component {
       console.log('auction stop');
       this.setState({
         isAuctionStart: false,
-        auctionType: data.auctionType
+        auctionType: data.auctionType,
+        hasBid: false
       })
     });
     
@@ -43,8 +47,11 @@ class Auction extends React.Component {
       console.log('next round', data);
       this.setState({
         currentPrice: data.currentPrice,
-        currentRound: data.currentRound
-      })
+        currentRound: data.currentRound,
+        currentBid: data.currentBid,
+        hasBid: data.hasBid
+      }, () => this.form.reset());
+      
     });
   
     socket.on('resume-auction', (data) => {
@@ -55,9 +62,19 @@ class Auction extends React.Component {
         auctionType: data.auctionType,
         money: data.money,
         currentPrice: data.currentPrice,
-        currentRound: data.currentRound
+        currentRound: data.currentRound,
+        hasBid: data.hasBid,
+        currentBid: data.currentBid
       });
     });
+    
+    socket.on('bid-successful', (data) => {
+      this.setState({
+        money: data.money,
+        currentBid: data.currentBid,
+        hasBid: data.hasBid
+      })
+    })
     
   }
   
@@ -82,11 +99,14 @@ class Auction extends React.Component {
     
     switch (this.state.auctionType) {
       case EnglishAuction: {
-        return <EnglishAuctionForm
+        return <AuctionForm
+          ref={(child) => { this.form = child; }}
           bidButtonDidClick={this.bid}
           currentRound={this.state.currentRound}
           currentPrice={this.state.currentPrice}
           money={this.state.money}
+          currentBid={this.state.currentBid}
+          hasBid={this.state.hasBid}
         />;
       }
       default: {
