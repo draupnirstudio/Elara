@@ -9,7 +9,7 @@ import * as _ from 'lodash';
 
 import {Mutex} from 'locks';
 
-const lock = new Mutex();
+const bidLock = new Mutex();
 
 enum AuctionErrorCode {
   UnknownError = 1000,
@@ -86,7 +86,8 @@ class Auction {
     } catch (e) {
       console.error(e);
       socket.emit('auction-start-error', {
-        error: e.toString()
+        error: e.toString(),
+        code: AuctionErrorCode.UnknownError
       });
     }
   }
@@ -118,7 +119,16 @@ class Auction {
         error: e.toString()
       });
     }
-    
+  }
+  
+  setDefaultMoney(io: Server, defaultMoney: number) {
+    this.defaultMoney = defaultMoney;
+    if (this.currentRound === 0) {
+      this.users.forEach((u) => u.money = defaultMoney);
+      io.sockets.emit('default-money-changed', {
+        defaultMoney
+      });
+    }
   }
   
   resumeAuction(socket: Socket, userId: string) {
@@ -144,6 +154,10 @@ class Auction {
       currentBid: currentBidResult ? currentBidResult.bid : 0,
       hasBid: !_.isNil(currentBidResult)
     });
+    
+    socket.emit('next-round-price-admin', {
+      nextPrice: this.nextPrice
+    });
   }
   
   stopAuction(socket: Socket) {
@@ -165,14 +179,15 @@ class Auction {
   }
   
   bid(io: Server, socket: Socket, bidPrice: number, userId: string) {
-    lock.lock(async () => {
+    bidLock.lock(async () => {
       console.log('user:', userId, 'bid: ', bidPrice, 'current price: ', this.currentPrice);
       if (bidPrice <= this.currentPrice) {
+        console.log(bidPrice, this.currentPrice);
         socket.emit('bid-error', {
           error: 'bid should larger than current price',
           code: AuctionErrorCode.BidShouldLargerThanCurrentPrice
         });
-        lock.unlock();
+        bidLock.unlock();
         return;
       }
       
@@ -183,7 +198,7 @@ class Auction {
           error: 'user not found',
           code: AuctionErrorCode.BidUserNotFound
         });
-        lock.unlock();
+        bidLock.unlock();
         return;
       }
       
@@ -195,7 +210,7 @@ class Auction {
           money: user.money,
           code: AuctionErrorCode.BidShouldLessOrEqualThanRemainMoney
         });
-        lock.unlock();
+        bidLock.unlock();
         return;
       }
       
@@ -209,7 +224,7 @@ where user = '${userId}' and round = '${this.currentRound}'`;
             error: 'you have already bid',
             code: AuctionErrorCode.UserAlreadyBid
           });
-          lock.unlock();
+          bidLock.unlock();
           return;
         }
         
@@ -229,14 +244,14 @@ where user = '${userId}' and round = '${this.currentRound}'`;
           currentPrice: bidPrice
         });
         
-        lock.unlock();
+        bidLock.unlock();
       } catch (e) {
         console.log(e);
         socket.emit('bid-error', {
           error: e.toString(),
           code: AuctionErrorCode.UnknownError
         });
-        lock.unlock();
+        bidLock.unlock();
       }
     });
   }

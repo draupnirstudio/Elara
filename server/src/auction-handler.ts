@@ -10,7 +10,10 @@ export function auctionHandler(io: Server, socket: Socket, userId: string) {
   });
   
   socket.on('start-next-round-admin', async (data: any) => {
-    await auction.startNextRound(io, socket);
+    const nextPrice = Number(data.nextPrice);
+    nextPrice > 0
+      ? await auction.startNextRound(io, socket, nextPrice)
+      : auction.startNextRound(io, socket);
   });
   
   socket.on('stop-auction-admin', (data: any) => {
@@ -19,10 +22,13 @@ export function auctionHandler(io: Server, socket: Socket, userId: string) {
   });
   
   
+  socket.on('set-default-money-admin', (data: { defaultMoney: number }) => {
+    auction.setDefaultMoney(io, data.defaultMoney);
+    console.log('default money changed to: ', data.defaultMoney);
+  });
   
-  
-  socket.on('bid',async (data: {bid: number}) => {
-    auction.bid(io, socket, data.bid, userId);
+  socket.on('bid', async (data: { bid: number }) => {
+    auction.bid(io, socket, Number(data.bid), userId);
   })
   
 }

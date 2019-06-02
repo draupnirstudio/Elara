@@ -1,7 +1,15 @@
 import React from 'react';
 
 import {socket} from "../../utils/socket";
-import {EnglishAuction, NoAuction} from "../../constants/auction-type";
+import {NoAuction} from "../../constants/auction-type";
+
+import './admin.css';
+
+const UnknownError = 1000;
+// const BidUserNotFound = 1001;
+// const UserAlreadyBid = 1002;
+// const BidShouldLargerThanCurrentPrice = 1003;
+// const BidShouldLessOrEqualThanRemainMoney = 1004;
 
 class Admin extends React.Component {
   constructor(props) {
@@ -18,16 +26,9 @@ class Admin extends React.Component {
   }
   
   componentDidMount() {
-    socket.on('next-round-price-admin', (data) => {
-      this.setState({
-        nextPrice: data.nextPrice
-      })
-    });
-  
-  
     socket.on('auction-start', (data) => {
       console.log('auction-start', data);
-    
+      
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
@@ -36,7 +37,18 @@ class Admin extends React.Component {
         currentRound: data.currentRound
       });
     });
-  
+    
+    socket.on('auction-start-error', (data) => {
+      console.log(data);
+      switch (data.code) {
+        case UnknownError:
+          alert("start auction error, please try again");
+          break;
+        default:
+          break;
+      }
+    });
+    
     socket.on('auction-stop', (data) => {
       console.log('auction stop');
       this.setState({
@@ -44,7 +56,8 @@ class Admin extends React.Component {
         auctionType: data.auctionType,
         currentPrice: 0,
         currentRound: 0,
-        nextPrice: 0
+        nextPrice: 0,
+        defaultMoney: 0
       })
     });
     
@@ -55,33 +68,35 @@ class Admin extends React.Component {
         currentRound: data.currentRound
       })
     });
-  
+    
     socket.on('resume-auction', (data) => {
       console.log('auction-resumed', data);
-    
+      
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
         currentPrice: data.currentPrice,
-        currentRound: data.currentRound
+        currentRound: data.currentRound,
+        defaultMoney: data.money
       });
     });
     
-  }
-  
-  componentWillUnmount() {
+    socket.on('next-round-price-admin', (data) => {
+      this.setState({
+        nextPrice: data.nextPrice
+      })
+    });
   }
   
   startEnglishAuction = () => {
     socket.emit("start-english-auction-admin");
-    this.setState({
-      auctionType: EnglishAuction
-    })
   };
   
-  startNextRound() {
-    socket.emit("start-next-round-admin");
-  }
+  startNextRound = () => {
+    socket.emit("start-next-round-admin", {
+      nextPrice: this.state.nextPrice
+    });
+  };
   
   stopAuction = () => {
     socket.emit("stop-auction-admin");
@@ -90,10 +105,26 @@ class Admin extends React.Component {
     })
   };
   
+  
+  nextPriceDidChange = (event) => {
+    this.setState({nextPrice: event.target.value});
+  };
+  
+  setDefaultMoney = () => {
+    socket.emit("set-default-money-admin", {
+      defaultMoney: this.state.defaultMoney
+    });
+  };
+  
+  defaultMoneyDidChange = (event) => {
+    this.setState({defaultMoney: event.target.value});
+  };
+  
+  
   render() {
     return (
       <div>
-        <div style={{marginBottom: '10px'}}>
+        <div className="item-wrapper">
           <button className="ui button" disabled={this.state.isAuctionStart} onClick={this.startEnglishAuction}>
             Start English Auction
           </button>
@@ -102,48 +133,55 @@ class Admin extends React.Component {
           </button>
         </div>
         
-        <div>
+        <div className="item-wrapper">
           <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.startNextRound}>
             Start Next Round
           </button>
         </div>
         
-        <div style={{marginBottom: '10px'}}>
-          Auction Status: {this.state.auctionType}
+        <div className="item-wrapper">
+          <span>auction status: </span> {this.state.auctionType}
         </div>
         
-        <div style={{marginBottom: '10px'}}>
-          current round: {this.state.currentRound}
-        </div>
-  
-        <div style={{marginBottom: '10px'}}>
-          current price: {this.state.currentPrice}
+        <div className="item-wrapper">
+          <span>default money:</span>
+          <div className="ui input">
+            <input
+              type="text"
+              disabled={!this.state.isAuctionStart}
+              value={this.state.defaultMoney}
+              onChange={this.defaultMoneyDidChange}
+            />
+          </div>
+          <button
+            className="ui button"
+            disabled={!this.state.isAuctionStart}
+            onClick={this.setDefaultMoney}>
+            submit
+          </button>
         </div>
         
-        <div style={{marginBottom: '10px'}}>
-          next price: <input type="text" value={this.state.nextPrice}/>
+        <div className="item-wrapper">
+          <span>current round: </span> {this.state.currentRound}
         </div>
         
-        {/*<div>*/}
-        {/*  <table>*/}
-        {/*    <thead>*/}
-        {/*    <tr>*/}
-        {/*      <th>UserId</th>*/}
-        {/*      <th>Price</th>*/}
-        {/*      <th>Wallet</th>*/}
-        {/*      <th>Bid</th>*/}
-        {/*    </tr>*/}
-        {/*    </thead>*/}
-        {/*    <tbody>*/}
-        {/*    <tr>*/}
-        {/*      <td>user1</td>*/}
-        {/*      <td>100</td>*/}
-        {/*      <td>200</td>*/}
-        {/*      <td>5</td>*/}
-        {/*    </tr>*/}
-        {/*    </tbody>*/}
-        {/*  </table>*/}
-        {/*</div>*/}
+        <div className="item-wrapper">
+          <span>current price: </span>{this.state.currentPrice}
+        </div>
+        
+        <div className="item-wrapper">
+          <span>next price:</span>
+          <div className="ui input">
+            <input
+              type="number"
+              disabled={!this.state.isAuctionStart}
+              value={this.state.nextPrice}
+              onChange={this.nextPriceDidChange}
+            />
+          </div>
+        </div>
+      
+      
       </div>
     );
   }

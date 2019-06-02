@@ -28,13 +28,13 @@ server.listen(port, '0.0.0.0', () => {
 
 async function bootstrap() {
   await query(`CREATE TABLE IF NOT EXISTS auctions
-             (
-                 auction_id   varchar(255) primary key,
-                 mean         double not null,
-                 standard_dev double not null,
-                 auction_type varchar(255) not null,
-                 algorithm varchar(255) not null
-             )`);
+               (
+                   auction_id   varchar(255) primary key,
+                   mean         double       not null,
+                   standard_dev double       not null,
+                   auction_type varchar(255) not null,
+                   algorithm    varchar(255) not null
+               )`);
   
   console.log('Auction Table Created.');
   
@@ -64,9 +64,7 @@ async function bootstrap() {
       console.log('user disconnected:', userId);
     });
   });
-  
-};
-
+}
 
 bootstrap();
 

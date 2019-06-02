@@ -21,8 +21,6 @@ class Auction extends React.Component {
   
   componentDidMount() {
     socket.on('auction-start', (data) => {
-      console.log('auction-start', data);
-      
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
@@ -35,7 +33,6 @@ class Auction extends React.Component {
     });
     
     socket.on('auction-stop', (data) => {
-      console.log('auction stop');
       this.setState({
         isAuctionStart: false,
         auctionType: data.auctionType,
@@ -44,19 +41,15 @@ class Auction extends React.Component {
     });
     
     socket.on('next-round', data => {
-      console.log('next round', data);
       this.setState({
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
         currentBid: data.currentBid,
         hasBid: data.hasBid
       }, () => this.form.reset());
-      
     });
     
     socket.on('resume-auction', (data) => {
-      console.log('auction-resumed', data);
-      
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
@@ -76,20 +69,28 @@ class Auction extends React.Component {
       })
     });
     
+    socket.on('bid-error', (data) => {
+      console.log(data);
+    });
+    
     socket.on('current-price-updated', (data) => {
       this.setState({
         currentPrice: data.currentPrice
       });
     });
     
+    socket.on('default-money-changed', (data) => {
+      console.log(data);
+      if (this.state.currentRound === 0) {
+        this.setState({money: data.defaultMoney});
+      }
+    });
+    
   }
   
   bid(price) {
-    socket.emit('bid', {
-      bid: price
-    });
+    socket.emit('bid', {bid: price});
   }
-  
   
   render() {
     const isAuctionStart = this.state.isAuctionStart;

@@ -1,0 +1,9 @@
+.item-wrapper {
+  margin-bottom: 15px;
+}
+
+.item-wrapper span,
+.item-wrapper input,
+.item-wrapper div {
+  margin-right: 10px;
+}
