@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   'port': 3306,
   'user': 'elara',
   'database': 'elara',
-  'password': 'CCrBgLBfIBrnBMHk'
+  'password': 'qgXs9PEnAbPatv'
 });
 
 export function query (sql: string, values?: any) {

@@ -24,6 +24,10 @@ export class AuctionForm extends React.Component {
     } else if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
     }
+    
+    if(this.props.currentPrice !== nextProps.currentPrice) {
+      this.reset();
+    }
   
     this.setState({bid: nextProps.currentBid});
   }

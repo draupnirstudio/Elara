@@ -124,26 +124,26 @@ class Admin extends React.Component {
           next price: <input type="text" value={this.state.nextPrice}/>
         </div>
         
-        <div>
-          <table>
-            <thead>
-            <tr>
-              <th>UserId</th>
-              <th>Price</th>
-              <th>Wallet</th>
-              <th>Bid</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-              <td>user1</td>
-              <td>100</td>
-              <td>200</td>
-              <td>5</td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
+        {/*<div>*/}
+        {/*  <table>*/}
+        {/*    <thead>*/}
+        {/*    <tr>*/}
+        {/*      <th>UserId</th>*/}
+        {/*      <th>Price</th>*/}
+        {/*      <th>Wallet</th>*/}
+        {/*      <th>Bid</th>*/}
+        {/*    </tr>*/}
+        {/*    </thead>*/}
+        {/*    <tbody>*/}
+        {/*    <tr>*/}
+        {/*      <td>user1</td>*/}
+        {/*      <td>100</td>*/}
+        {/*      <td>200</td>*/}
+        {/*      <td>5</td>*/}
+        {/*    </tr>*/}
+        {/*    </tbody>*/}
+        {/*  </table>*/}
+        {/*</div>*/}
       </div>
     );
   }

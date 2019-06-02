@@ -53,10 +53,10 @@ class Auction extends React.Component {
       }, () => this.form.reset());
       
     });
-  
+    
     socket.on('resume-auction', (data) => {
       console.log('auction-resumed', data);
-    
+      
       this.setState({
         isAuctionStart: true,
         auctionType: data.auctionType,
@@ -74,7 +74,13 @@ class Auction extends React.Component {
         currentBid: data.currentBid,
         hasBid: data.hasBid
       })
-    })
+    });
+    
+    socket.on('current-price-updated', (data) => {
+      this.setState({
+        currentPrice: data.currentPrice
+      });
+    });
     
   }
   
@@ -100,7 +106,9 @@ class Auction extends React.Component {
     switch (this.state.auctionType) {
       case EnglishAuction: {
         return <AuctionForm
-          ref={(child) => { this.form = child; }}
+          ref={(child) => {
+            this.form = child;
+          }}
           bidButtonDidClick={this.bid}
           currentRound={this.state.currentRound}
           currentPrice={this.state.currentPrice}

@@ -8,6 +8,7 @@ import 'semantic-ui-css/semantic.min.css';
 
 import Auction from './components/auction/auction';
 import Admin from './components/admin/admin';
+import {Test} from "./components/test/test";
 
 ReactDOM.render(
   <Router>
@@ -16,6 +17,7 @@ ReactDOM.render(
         <main>
           <Route exact={true} path="/" component={Auction}/>
           <Route path="/admin" component={Admin}/>
+          <Route path="/test" component={Test}/>
         </main>
       </div>
     </div>

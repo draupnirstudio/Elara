@@ -21,8 +21,8 @@ export function auctionHandler(io: Server, socket: Socket, userId: string) {
   
   
   
-  socket.on('bid',(data: {bid: number}) => {
-    auction.bid(socket, data.bid, userId);
+  socket.on('bid',async (data: {bid: number}) => {
+    auction.bid(io, socket, data.bid, userId);
   })
   
 }

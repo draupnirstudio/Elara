@@ -5,7 +5,19 @@ import {generateAuctionId} from './helpers/auction-id-generator';
 
 import {query} from './lib/mysql-connector';
 import {AuctionPriceGeneratorAlgorithm, generateAuctionPrice} from './helpers/auction-price-generator';
-import _ = require('lodash');
+import * as _ from 'lodash';
+
+import {Mutex} from 'locks';
+
+const lock = new Mutex();
+
+enum AuctionErrorCode {
+  UnknownError = 1000,
+  BidUserNotFound = 1001,
+  UserAlreadyBid = 1002,
+  BidShouldLargerThanCurrentPrice = 1003,
+  BidShouldLessOrEqualThanRemainMoney = 1004,
+}
 
 class Auction {
   isAuctionStarted = false;
@@ -46,6 +58,7 @@ class Auction {
                        id          int primary key auto_increment,
                        user        varchar(255) not null,
                        round       int          not null,
+                       price double not null,
                        bid         double       not null,
                        startMoney  double       not null,
                        remainMoney double       not null
@@ -116,8 +129,6 @@ class Auction {
       this.users.push(user);
     }
     
-    console.log(this.users, this.users.length);
-    
     if (!this.isAuctionStarted) {
       this.stopAuction(socket);
       return;
@@ -131,7 +142,7 @@ class Auction {
       currentRound: this.currentRound,
       currentPrice: this.currentPrice,
       currentBid: currentBidResult ? currentBidResult.bid : 0,
-      hasBid: !_.isNil(_.findLast(user.bidHistory, (u) => u.round === this.currentRound))
+      hasBid: !_.isNil(currentBidResult)
     });
   }
   
@@ -153,17 +164,83 @@ class Auction {
     });
   }
   
-  bid(socket: Socket, bidPrice: number, userId: string) {
-    let user: User = _.findLast(this.users, user => user.userId === userId) as any;
-    
-    user.bid(this.currentRound, bidPrice);
-    
-    socket.emit('bid-successful', {
-      money: user.money,
-      currentBid: bidPrice,
-      hasBid: true
-    })
+  bid(io: Server, socket: Socket, bidPrice: number, userId: string) {
+    lock.lock(async () => {
+      console.log('user:', userId, 'bid: ', bidPrice, 'current price: ', this.currentPrice);
+      if (bidPrice <= this.currentPrice) {
+        socket.emit('bid-error', {
+          error: 'bid should larger than current price',
+          code: AuctionErrorCode.BidShouldLargerThanCurrentPrice
+        });
+        lock.unlock();
+        return;
+      }
+      
+      let user: User = _.findLast(this.users, user => user.userId === userId) as any;
+      if (_.isNil(user)) {
+        console.error('user not found', this.users.map(u => u.userId), userId);
+        socket.emit('bid-error', {
+          error: 'user not found',
+          code: AuctionErrorCode.BidUserNotFound
+        });
+        lock.unlock();
+        return;
+      }
+      
+      if (user.money < bidPrice) {
+        console.error('cannot bid', user.money, bidPrice);
+        socket.emit('bid-error', {
+          error: 'bid should less or equal than remain money',
+          bid: bidPrice,
+          money: user.money,
+          code: AuctionErrorCode.BidShouldLessOrEqualThanRemainMoney
+        });
+        lock.unlock();
+        return;
+      }
+      
+      try {
+        const hasBidQuery = `SELECT count(1) as hasBidCount from ${this.auctionId}_record
+where user = '${userId}' and round = '${this.currentRound}'`;
+        const hasBid = await query(hasBidQuery) as any;
+        
+        if (hasBid[0].hasBidCount > 0) {
+          socket.emit('bid-error', {
+            error: 'you have already bid',
+            code: AuctionErrorCode.UserAlreadyBid
+          });
+          lock.unlock();
+          return;
+        }
+        
+        await query(`INSERT INTO ${this.auctionId}_record(user, round, price, bid, startMoney, remainMoney)
+                   VALUES (?, ?, ?, ?, ?, ?) `, [userId, this.currentRound, this.currentPrice, bidPrice, user.money, user.money - bidPrice]);
+        
+        user.bid(this.currentRound, bidPrice);
+        this.currentPrice = bidPrice;
+        
+        socket.emit('bid-successful', {
+          money: user.money,
+          currentBid: bidPrice,
+          hasBid: true
+        });
+        
+        io.sockets.emit('current-price-updated', {
+          currentPrice: bidPrice
+        });
+        
+        lock.unlock();
+      } catch (e) {
+        console.log(e);
+        socket.emit('bid-error', {
+          error: e.toString(),
+          code: AuctionErrorCode.UnknownError
+        });
+        lock.unlock();
+      }
+    });
   }
+  
 }
 
 export const auction = new Auction();

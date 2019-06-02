@@ -61,7 +61,6 @@ async function bootstrap() {
     });
     
     socket.on('disconnect', () => {
-      // _.remove(users, (u) => u === userId);
       console.log('user disconnected:', userId);
     });
   });
