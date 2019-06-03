@@ -33,13 +33,25 @@ export function auctionHandler(io: Server, sockets: { [key: string]: Socket | nu
   
   socket.on('stop-auction-admin', (data: any) => {
     auction.stopAllAuction(io);
-    console.log('auction stopped:', auction.auctionType);
   });
   
   socket.on('set-default-money-admin', (data: { defaultMoney: number }) => {
     auction.setDefaultMoney(io, data.defaultMoney);
-    console.log('default money changed to: ', data.defaultMoney);
   });
+  
+  
+  socket.on('set-algorithm-mean-admin', (data: { mean: number }) => {
+    auction.setAlgorithmMean(socket, Number(data.mean));
+  });
+  
+  socket.on('set-algorithm-deviation-admin', (data: { deviation: number }) => {
+    auction.setAlgorithmDeviation(socket, Number(data.deviation));
+  });
+  
+  socket.on('set-algorithm-admin', (data) => {
+    auction.setAlgorithm(socket, data.algorithm);
+  });
+  
   
   socket.on('bid', async (data: { bid: number }) => {
     auction.bid(io, socket, _.get(sockets, adminUserId), Number(data.bid), userId);

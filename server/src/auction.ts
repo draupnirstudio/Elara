@@ -4,7 +4,7 @@ import {User} from './user';
 import {generateAuctionId} from './helpers/auction-id-generator';
 
 import {query} from './lib/mysql-connector';
-import {AuctionPriceGeneratorAlgorithm, generateAuctionPrice} from './helpers/auction-price-generator';
+import {AuctionAlgorithm, generateAuctionPrice} from './helpers/auction-price-generator';
 import * as _ from 'lodash';
 import logger from './lib/logger';
 
@@ -33,8 +33,8 @@ class Auction {
   users: User[] = [];
   
   mean: number = 70;
-  dev = 10;
-  algorithm: AuctionPriceGeneratorAlgorithm = AuctionPriceGeneratorAlgorithm.NormalDistribution;
+  deviation: number = 10;
+  algorithm: AuctionAlgorithm = AuctionAlgorithm.NormalDistribution;
   
   priceList: number[] = [];
   
@@ -43,7 +43,7 @@ class Auction {
     this.auctionType = auctionType;
     this.currentRound = 0;
     this.currentPrice = 0;
-    this.nextPrice = generateAuctionPrice(this.mean, this.dev, this.algorithm);
+    this.nextPrice = generateAuctionPrice(this.mean, this.deviation, this.algorithm);
     this.users.forEach((u) => {
       u.money = this.defaultMoney;
       u.bidHistory = [];
@@ -52,7 +52,7 @@ class Auction {
     
     try {
       await query(`INSERT INTO auctions
-                   VALUES (?, ?, ?, ?, ?)`, [this.auctionId, this.mean, this.dev, this.auctionType, this.algorithm]);
+                   VALUES (?, ?, ?, ?, ?)`, [this.auctionId, this.mean, this.deviation, this.auctionType, this.algorithm]);
       
       await query(`CREATE TABLE IF NOT EXISTS ${this.auctionId}_record
                    (
@@ -64,12 +64,14 @@ class Auction {
                        startMoney  double       not null,
                        remainMoney double       not null
                    )`);
+      console.log(`${this.auctionId}_record table created.`);
       
       await query(`CREATE TABLE IF NOT EXISTS ${this.auctionId}_price
                    (
                         round       int   primary key,
                         price double not null
                    )`);
+      console.log(`${this.auctionId}_price table created.`);
       
       io.sockets.emit('auction-start', {
         auctionType: this.auctionType,
@@ -81,6 +83,12 @@ class Auction {
       
       socket.emit('next-round-price-admin', {
         nextPrice: this.nextPrice
+      });
+      
+      socket.emit('algorithm-config-admin', {
+        algorithm: this.algorithm,
+        mean: this.mean,
+        deviation: this.deviation
       });
       
       logger.info(`auction ${this.auctionId} start!`);
@@ -111,7 +119,7 @@ class Auction {
         hasBid: false
       });
       
-      this.nextPrice = generateAuctionPrice(this.mean, this.dev, this.algorithm);
+      this.nextPrice = generateAuctionPrice(this.mean, this.deviation, this.algorithm);
       socket.emit('next-round-price-admin', {
         nextPrice: this.nextPrice
       });
@@ -131,12 +139,28 @@ class Auction {
     
     if (this.currentRound === 0) {
       this.users.forEach((u) => u.money = defaultMoney);
-      io.sockets.emit('default-money-changed', {
-        defaultMoney
-      });
+      io.sockets.emit('default-money-changed', {defaultMoney});
     }
     
     logger.info(`default money set to ${this.defaultMoney}`);
+  }
+  
+  setAlgorithm(socket: Socket, algorithm: AuctionAlgorithm) {
+    this.algorithm = algorithm;
+    logger.info(`algorithm set to ${this.algorithm}`);
+    socket.emit('algorithm-changed', {algorithm});
+  }
+  
+  setAlgorithmMean(socket: Socket, mean: number) {
+    this.mean = mean;
+    logger.info(`algorithm mean set to ${this.mean}`);
+    socket.emit('algorithm-mean-changed', {mean});
+  }
+  
+  setAlgorithmDeviation(socket: Socket, deviation: number) {
+    this.deviation = deviation;
+    logger.info(`algorithm deviation set to ${this.deviation}`);
+    socket.emit('algorithm-deviation-changed', {deviation});
   }
   
   resumeAuction(socket: Socket, userId: string) {
@@ -167,11 +191,17 @@ class Auction {
         auctionType: this.auctionType,
         currentRound: this.currentRound,
         currentPrice: this.currentPrice,
-        defaultMoney: this.defaultMoney
+        defaultMoney: this.currentRound === 0 ? 0 : this.defaultMoney
       });
       
       socket.emit('next-round-price-admin', {
         nextPrice: this.currentRound === 0 ? 0 : this.nextPrice
+      });
+      
+      socket.emit('algorithm-config-admin', {
+        algorithm: this.algorithm,
+        mean: this.mean,
+        deviation: this.deviation
       });
       
       if (_.isNil(this.auctionId)) {

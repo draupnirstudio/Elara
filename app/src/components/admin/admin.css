@@ -1,9 +1,13 @@
 .item-wrapper {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .item-wrapper span,
 .item-wrapper input,
 .item-wrapper div {
   margin-right: 10px;
+}
+
+.auction-info-wrapper {
+  margin: 10px 0;
 }

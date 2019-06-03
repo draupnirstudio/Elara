@@ -1,3 +1,3 @@
-export const EnglishAuction = 'English Auction';
-export const DutchAuction = 'Dutch Auction';
-export const NoAuction = 'No Auction';
+export const EnglishAuction = 'english auction';
+export const DutchAuction = 'dutch auction';
+export const NoAuction = 'auction not started';

@@ -1,5 +1,7 @@
-export enum AuctionPriceGeneratorAlgorithm {
-  NormalDistribution = 'Normal Distribution',
+export enum AuctionAlgorithm {
+  NormalDistribution = 'normal-distribution',
+  UniformDistribution = 'uniform-distribution',
+  WeibullDistribution = 'weibull-distribution'
 }
 
 function normalDistribution(mean: number, dev: number) {
@@ -24,9 +26,9 @@ function normalDistribution(mean: number, dev: number) {
 }
 
 
-export function generateAuctionPrice(mean: number, dev: number, algorithm: AuctionPriceGeneratorAlgorithm) {
+export function generateAuctionPrice(mean: number, dev: number, algorithm: AuctionAlgorithm) {
   switch (algorithm) {
-    case AuctionPriceGeneratorAlgorithm.NormalDistribution:
+    case AuctionAlgorithm.NormalDistribution:
       return normalDistribution(mean, dev);
     default:
       return 100;

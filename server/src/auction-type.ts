@@ -1,5 +1,5 @@
 export enum AuctionType {
-  NoAuction = 'No Auction',
-  EnglishAuction = 'English Auction',
-  DutchAuction = 'Dutch Auction'
+  NoAuction = 'auction not started',
+  EnglishAuction = 'english auction',
+  DutchAuction = 'dutch auction'
 }
