@@ -5,8 +5,8 @@ import * as http from 'http';
 import {generateUserId} from './src/helpers/userId-generator';
 import * as _ from 'lodash';
 import * as sio from 'socket.io';
+import {Socket} from 'socket.io';
 import {auctionHandler} from './src/auction-handler';
-import {auction} from './src/auction';
 import {query} from './src/lib/mysql-connector';
 
 const app: express.Application = express();
@@ -14,6 +14,8 @@ const server = new http.Server(app);
 const io = sio(server);
 
 const port = 5000;
+
+let sockets: { [key: string]: Socket | null } = {};
 
 app.use(morgan('combined'));
 app.use(helmet());
@@ -53,14 +55,15 @@ async function bootstrap() {
         userId = _userId;
       }
       
+      sockets[userId] = socket;
+      
       console.log('user connected:', userId);
       
-      auction.resumeAuction(socket, userId);
-      
-      auctionHandler(io, socket, userId);
+      auctionHandler(io, sockets, socket, userId);
     });
     
     socket.on('disconnect', () => {
+      sockets[userId] = null;
       console.log('user disconnected:', userId);
     });
   });

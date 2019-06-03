@@ -25,10 +25,10 @@ export class AuctionForm extends React.Component {
       this.setInfo('You have run out of money.', Pass);
     }
     
-    if(this.props.currentPrice !== nextProps.currentPrice) {
+    if (this.props.currentPrice !== nextProps.currentPrice) {
       this.reset();
     }
-  
+    
     this.setState({bid: nextProps.currentBid});
   }
   
@@ -37,13 +37,13 @@ export class AuctionForm extends React.Component {
       this.setInfo('You have already bid, please wait for next round.', Pass);
     } else if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
-    } else if (this.props.currentRound === 0 ) {
+    } else if (this.props.currentRound === 0) {
       this.setInfo('Please wait auction start.', Pass);
     } else {
       this.setInfo('Please type a bid.');
     }
-  
-    this.setState({bid:this.props.currentBid});
+    
+    this.setState({bid: this.props.currentBid});
   }
   
   bidInputDidChange = (event) => {
@@ -93,7 +93,7 @@ export class AuctionForm extends React.Component {
     this.setState({
       bid: 0,
     });
-  
+    
     if (this.props.hasBid) {
       this.setInfo('You have already bid, please wait for next round.', Pass);
     } else if (this.props.money === 0) {
@@ -108,7 +108,11 @@ export class AuctionForm extends React.Component {
       <table className="ui celled table" style={{width: '500px'}}>
         <tbody>
         <tr>
-          <td style={{width: '40%'}}>Current Round</td>
+          <td style={{width: '40%'}}>User Id</td>
+          <td>{this.props.userId}</td>
+        </tr>
+        <tr>
+          <td>Current Round</td>
           <td>{this.props.currentRound}</td>
         </tr>
         <tr>

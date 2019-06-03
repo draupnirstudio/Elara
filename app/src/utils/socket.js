@@ -21,3 +21,7 @@ socket.on('user-id-generated', (data) => {
   
   console.log('userId saved in localStorage', userId);
 });
+
+export function getUserId() {
+  return storageClient.get(userIdKey);
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {socket} from "../../utils/socket";
+import {getUserId, socket} from "../../utils/socket";
 import {NoAuction} from "../../constants/auction-type";
 
 import './admin.css';
@@ -12,22 +12,32 @@ const UnknownError = 1000;
 // const BidShouldLessOrEqualThanRemainMoney = 1004;
 
 class Admin extends React.Component {
+  
+  initialState = {
+    auctionType: NoAuction,
+    isAuctionStart: false,
+    currentPrice: 0,
+    currentRound: 0,
+    defaultMoney: 0,
+    nextPrice: 0,
+    userBidHistory: []
+  };
+  
   constructor(props) {
     super(props);
     
-    this.state = {
-      auctionType: NoAuction,
-      isAuctionStart: false,
-      currentPrice: 0,
-      currentRound: 0,
-      defaultMoney: 0,
-      nextPrice: 0,
-    };
+    this.state = this.initialState;
   }
   
   componentDidMount() {
+    socket.emit('admin-user-registered', {
+      userId: getUserId()
+    });
+    
+    socket.emit('resume-auction-admin');
+    
     socket.on('auction-start', (data) => {
-      console.log('auction-start', data);
+      console.log('auction start', data);
       
       this.setState({
         isAuctionStart: true,
@@ -39,7 +49,7 @@ class Admin extends React.Component {
     });
     
     socket.on('auction-start-error', (data) => {
-      console.log(data);
+      console.log('auction start error', data);
       switch (data.code) {
         case UnknownError:
           alert("start auction error, please try again");
@@ -50,15 +60,8 @@ class Admin extends React.Component {
     });
     
     socket.on('auction-stop', (data) => {
-      console.log('auction stop');
-      this.setState({
-        isAuctionStart: false,
-        auctionType: data.auctionType,
-        currentPrice: 0,
-        currentRound: 0,
-        nextPrice: 0,
-        defaultMoney: 0
-      })
+      console.log('auction stop', data);
+      this.setState(this.initialState);
     });
     
     socket.on('next-round', data => {
@@ -70,22 +73,31 @@ class Admin extends React.Component {
     });
     
     socket.on('resume-auction', (data) => {
-      console.log('auction-resumed', data);
+      console.log('auction resumed', data);
       
       this.setState({
-        isAuctionStart: true,
+        isAuctionStart: data.isAuctionStart,
         auctionType: data.auctionType,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
-        defaultMoney: data.money
+        defaultMoney: data.defaultMoney
       });
     });
     
     socket.on('next-round-price-admin', (data) => {
-      this.setState({
-        nextPrice: data.nextPrice
-      })
+      console.log('next price: ', data);
+      this.setState({nextPrice: data.nextPrice});
     });
+    
+    socket.on('user-did-bid', (data) => {
+      console.log('user did bid', data);
+      this.setState({userBidHistory: [...this.state.userBidHistory, data]});
+    });
+    
+    socket.on('default-money-changed', (data) => {
+      console.log('default money changed', data);
+      alert(`default money changed to ${data.defaultMoney}`);
+    })
   }
   
   startEnglishAuction = () => {
@@ -122,6 +134,16 @@ class Admin extends React.Component {
   
   
   render() {
+    const UserBidHistory = this.state.userBidHistory.map((e) =>
+      <tr key={`${e.userId}-${e.round}`}>
+        <td>{e.userId}</td>
+        <td>{e.round}</td>
+        <td>{e.startMoney}</td>
+        <td>{e.bid}</td>
+        <td>{e.remainMoney}</td>
+      </tr>
+    );
+    
     return (
       <div>
         <div className="item-wrapper">
@@ -149,7 +171,7 @@ class Admin extends React.Component {
             <input
               type="text"
               disabled={!this.state.isAuctionStart}
-              value={this.state.defaultMoney}
+              value={this.state.defaultMoney || 0}
               onChange={this.defaultMoneyDidChange}
             />
           </div>
@@ -175,13 +197,29 @@ class Admin extends React.Component {
             <input
               type="number"
               disabled={!this.state.isAuctionStart}
-              value={this.state.nextPrice}
+              value={this.state.nextPrice || 0}
               onChange={this.nextPriceDidChange}
             />
           </div>
         </div>
-      
-      
+        
+        <div className="item-wrapper"
+             style={{display: this.state.isAuctionStart ? 'block' : 'none'}}>
+          <table className="ui celled table text-center">
+            <thead>
+            <tr>
+              <th>userId</th>
+              <th>round</th>
+              <th>startMoney</th>
+              <th>bid</th>
+              <th>remainMoney</th>
+            </tr>
+            </thead>
+            <tbody>
+            {UserBidHistory}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }

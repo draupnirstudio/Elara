@@ -1,5 +1,5 @@
 export class User {
-  money:number;
+  money: number;
   userId: string;
   
   bidHistory: any = [];

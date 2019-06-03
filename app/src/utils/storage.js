@@ -14,7 +14,7 @@ class ElaraStorage {
     let value = null;
     try {
       value = localStorage.getItem(key);
-      if(_.isObject(value)) {
+      if (_.isObject(value)) {
         return JSON.parse(value);
       }
       return value;
@@ -26,7 +26,7 @@ class ElaraStorage {
   
   set(key, value) {
     const _value = _.isObject(value) ? JSON.stringify(value) : value;
-
+    
     try {
       localStorage.setItem(key, _value);
       return true;

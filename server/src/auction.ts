@@ -139,14 +139,10 @@ class Auction {
       this.users.push(user);
     }
     
-    if (!this.isAuctionStarted) {
-      this.stopAuction(socket);
-      return;
-    }
-    
     const currentBidResult = _.findLast(user.bidHistory, (u) => u.round === this.currentRound);
     
     socket.emit('resume-auction', {
+      isAuctionStart: this.isAuctionStarted,
       auctionType: this.auctionType,
       money: user.money,
       currentRound: this.currentRound,
@@ -154,8 +150,18 @@ class Auction {
       currentBid: currentBidResult ? currentBidResult.bid : 0,
       hasBid: !_.isNil(currentBidResult)
     });
+  }
+  
+  resumeAuctionAdmin(socket: Socket) {
+    socket.emit('resume-auction', {
+      isAuctionStart: this.isAuctionStarted,
+      auctionType: this.auctionType,
+      currentRound: this.currentRound,
+      currentPrice: this.currentPrice,
+      defaultMoney: this.defaultMoney
+    });
     
-    socket.emit('next-round-price-admin', {
+    this.isAuctionStarted && socket.emit('next-round-price-admin', {
       nextPrice: this.nextPrice
     });
   }
@@ -164,21 +170,17 @@ class Auction {
     this.isAuctionStarted = false;
     this.auctionType = AuctionType.NoAuction;
     
-    socket.emit('auction-stop', {
-      auctionType: this.auctionType
-    });
+    socket.emit('auction-stop');
   }
   
   stopAllAuction(io: Server) {
     this.isAuctionStarted = false;
     this.auctionType = AuctionType.NoAuction;
     
-    io.sockets && io.sockets.emit('auction-stop', {
-      auctionType: this.auctionType
-    });
+    io.sockets && io.sockets.emit('auction-stop');
   }
   
-  bid(io: Server, socket: Socket, bidPrice: number, userId: string) {
+  bid(io: Server, socket: Socket, adminSocket: Socket | null, bidPrice: number, userId: string) {
     bidLock.lock(async () => {
       console.log('user:', userId, 'bid: ', bidPrice, 'current price: ', this.currentPrice);
       if (bidPrice <= this.currentPrice) {
@@ -242,6 +244,14 @@ where user = '${userId}' and round = '${this.currentRound}'`;
         
         io.sockets.emit('current-price-updated', {
           currentPrice: bidPrice
+        });
+        
+        adminSocket && adminSocket.emit('user-did-bid', {
+          userId,
+          startMoney: user.money + bidPrice,
+          bid: bidPrice,
+          remainMoney: user.money,
+          round: this.currentRound
         });
         
         bidLock.unlock();
