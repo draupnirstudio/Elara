@@ -22,7 +22,10 @@ class Auction extends React.Component {
   }
   
   componentDidMount() {
-    socket.emit('resume-auction');
+    socket.on('user-connected', (data) => {
+      console.log('user connected', data);
+      socket.emit('resume-auction');
+    });
     
     socket.on('auction-start', (data) => {
       console.log('auction start', data);

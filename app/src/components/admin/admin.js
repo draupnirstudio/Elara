@@ -20,7 +20,8 @@ class Admin extends React.Component {
     currentRound: 0,
     defaultMoney: 0,
     nextPrice: 0,
-    userBidHistory: []
+    userBidHistory: [],
+    isWaitingAuctionStart: false,
   };
   
   constructor(props) {
@@ -34,10 +35,15 @@ class Admin extends React.Component {
       userId: getUserId()
     });
     
-    socket.emit('resume-auction-admin');
+    socket.on('user-connected', (data) => {
+      console.log('user connected', data);
+      socket.emit('resume-auction-admin');
+    });
     
     socket.on('auction-start', (data) => {
       console.log('auction start', data);
+      
+      this.setState({isWaitingAuctionStart: false});
       
       this.setState({
         isAuctionStart: true,
@@ -97,10 +103,16 @@ class Admin extends React.Component {
     socket.on('default-money-changed', (data) => {
       console.log('default money changed', data);
       alert(`default money changed to ${data.defaultMoney}`);
-    })
+    });
+    
+    socket.on('bid-history-fetched', (data) => {
+      console.log('bid-history-fetched', data);
+      this.setState({userBidHistory: [...data]});
+    });
   }
   
   startEnglishAuction = () => {
+    this.setState({isWaitingAuctionStart: true});
     socket.emit("start-english-auction-admin");
   };
   
@@ -135,9 +147,10 @@ class Admin extends React.Component {
   
   render() {
     const UserBidHistory = this.state.userBidHistory.map((e) =>
-      <tr key={`${e.userId}-${e.round}`}>
-        <td>{e.userId}</td>
+      <tr key={`${e.user}-${e.round}`}>
+        <td>{e.user}</td>
         <td>{e.round}</td>
+        <td>{e.price}</td>
         <td>{e.startMoney}</td>
         <td>{e.bid}</td>
         <td>{e.remainMoney}</td>
@@ -147,7 +160,8 @@ class Admin extends React.Component {
     return (
       <div>
         <div className="item-wrapper">
-          <button className="ui button" disabled={this.state.isAuctionStart} onClick={this.startEnglishAuction}>
+          <button className="ui button" disabled={this.state.isAuctionStart || this.state.isWaitingAuctionStart}
+                  onClick={this.startEnglishAuction}>
             Start English Auction
           </button>
           <button className="ui button" disabled={!this.state.isAuctionStart} onClick={this.stopAuction}>
@@ -179,7 +193,7 @@ class Admin extends React.Component {
             className="ui button"
             disabled={!this.state.isAuctionStart}
             onClick={this.setDefaultMoney}>
-            submit
+            update
           </button>
         </div>
         
@@ -210,6 +224,7 @@ class Admin extends React.Component {
             <tr>
               <th>userId</th>
               <th>round</th>
+              <th>price</th>
               <th>startMoney</th>
               <th>bid</th>
               <th>remainMoney</th>

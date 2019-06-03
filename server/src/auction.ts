@@ -6,6 +6,7 @@ import {generateAuctionId} from './helpers/auction-id-generator';
 import {query} from './lib/mysql-connector';
 import {AuctionPriceGeneratorAlgorithm, generateAuctionPrice} from './helpers/auction-price-generator';
 import * as _ from 'lodash';
+import logger from './lib/logger';
 
 import {Mutex} from 'locks';
 
@@ -82,9 +83,10 @@ class Auction {
         nextPrice: this.nextPrice
       });
       
-      console.log('auction: ', this.auctionId, ' start!');
+      logger.info(`auction ${this.auctionId} start!`);
     } catch (e) {
       console.error(e);
+      logger.error(`auction start error: ${e.toString()}`);
       socket.emit('auction-start-error', {
         error: e.toString(),
         code: AuctionErrorCode.UnknownError
@@ -113,8 +115,11 @@ class Auction {
       socket.emit('next-round-price-admin', {
         nextPrice: this.nextPrice
       });
+      
+      logger.info(`round ${this.currentRound} start`);
     } catch (e) {
       console.error(e);
+      logger.error(`next round start error: ${e.toString()}`);
       socket.emit('next-round-start-error', {
         error: e.toString()
       });
@@ -123,12 +128,15 @@ class Auction {
   
   setDefaultMoney(io: Server, defaultMoney: number) {
     this.defaultMoney = defaultMoney;
+    
     if (this.currentRound === 0) {
       this.users.forEach((u) => u.money = defaultMoney);
       io.sockets.emit('default-money-changed', {
         defaultMoney
       });
     }
+    
+    logger.info(`default money set to ${this.defaultMoney}`);
   }
   
   resumeAuction(socket: Socket, userId: string) {
@@ -152,18 +160,31 @@ class Auction {
     });
   }
   
-  resumeAuctionAdmin(socket: Socket) {
-    socket.emit('resume-auction', {
-      isAuctionStart: this.isAuctionStarted,
-      auctionType: this.auctionType,
-      currentRound: this.currentRound,
-      currentPrice: this.currentPrice,
-      defaultMoney: this.defaultMoney
-    });
-    
-    this.isAuctionStarted && socket.emit('next-round-price-admin', {
-      nextPrice: this.nextPrice
-    });
+  async resumeAuctionAdmin(socket: Socket) {
+    try {
+      socket.emit('resume-auction', {
+        isAuctionStart: this.isAuctionStarted,
+        auctionType: this.auctionType,
+        currentRound: this.currentRound,
+        currentPrice: this.currentPrice,
+        defaultMoney: this.defaultMoney
+      });
+      
+      socket.emit('next-round-price-admin', {
+        nextPrice: this.currentRound === 0 ? 0 : this.nextPrice
+      });
+      
+      if (_.isNil(this.auctionId)) {
+        return;
+      }
+      
+      const results = await query(`SELECT user, round, price, startMoney, bid, remainMoney
+    FROM ${this.auctionId}_record`);
+      socket.emit('bid-history-fetched', results);
+    } catch (e) {
+      logger.error(`resume admin auction error: ${e.toString()}`);
+      console.error(e);
+    }
   }
   
   stopAuction(socket: Socket) {
@@ -178,13 +199,13 @@ class Auction {
     this.auctionType = AuctionType.NoAuction;
     
     io.sockets && io.sockets.emit('auction-stop');
+    logger.info(`auction ${this.auctionId} stopped`);
   }
   
   bid(io: Server, socket: Socket, adminSocket: Socket | null, bidPrice: number, userId: string) {
     bidLock.lock(async () => {
       console.log('user:', userId, 'bid: ', bidPrice, 'current price: ', this.currentPrice);
       if (bidPrice <= this.currentPrice) {
-        console.log(bidPrice, this.currentPrice);
         socket.emit('bid-error', {
           error: 'bid should larger than current price',
           code: AuctionErrorCode.BidShouldLargerThanCurrentPrice
@@ -234,6 +255,16 @@ where user = '${userId}' and round = '${this.currentRound}'`;
                    VALUES (?, ?, ?, ?, ?, ?) `, [userId, this.currentRound, this.currentPrice, bidPrice, user.money, user.money - bidPrice]);
         
         user.bid(this.currentRound, bidPrice);
+        
+        adminSocket && adminSocket.emit('user-did-bid', {
+          user: userId,
+          startMoney: user.money + bidPrice,
+          bid: bidPrice,
+          price: this.currentPrice,
+          remainMoney: user.money,
+          round: this.currentRound
+        });
+        
         this.currentPrice = bidPrice;
         
         socket.emit('bid-successful', {
@@ -246,17 +277,10 @@ where user = '${userId}' and round = '${this.currentRound}'`;
           currentPrice: bidPrice
         });
         
-        adminSocket && adminSocket.emit('user-did-bid', {
-          userId,
-          startMoney: user.money + bidPrice,
-          bid: bidPrice,
-          remainMoney: user.money,
-          round: this.currentRound
-        });
-        
         bidLock.unlock();
       } catch (e) {
-        console.log(e);
+        console.error(e);
+        logger.error(`bid error: ${e.toString()}`);
         socket.emit('bid-error', {
           error: e.toString(),
           code: AuctionErrorCode.UnknownError
@@ -269,4 +293,3 @@ where user = '${userId}' and round = '${this.currentRound}'`;
 }
 
 export const auction = new Auction();
-

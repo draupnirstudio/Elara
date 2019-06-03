@@ -22,6 +22,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - mysql
+    volumes:
+      - ./server/log:/home/node/app/log
     networks:
       network:
         aliases:

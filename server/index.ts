@@ -57,6 +57,10 @@ async function bootstrap() {
       
       sockets[userId] = socket;
       
+      socket.emit('user-connected', {
+        userId
+      });
+      
       console.log('user connected:', userId);
       
       auctionHandler(io, sockets, socket, userId);

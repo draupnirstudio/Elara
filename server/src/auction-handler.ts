@@ -1,7 +1,7 @@
 import {Server, Socket} from 'socket.io';
 import {AuctionType} from './auction-type';
 import {auction} from './auction';
-import _ = require('lodash');
+import * as _ from 'lodash';
 
 let adminUserId: string;
 
@@ -15,8 +15,8 @@ export function auctionHandler(io: Server, sockets: { [key: string]: Socket | nu
     auction.resumeAuction(socket, userId);
   });
   
-  socket.on('resume-auction-admin', (data: any) => {
-    auction.resumeAuctionAdmin(socket);
+  socket.on('resume-auction-admin', async (data: any) => {
+    await auction.resumeAuctionAdmin(socket);
   });
   
   socket.on('start-english-auction-admin', async (data: any) => {
@@ -35,7 +35,6 @@ export function auctionHandler(io: Server, sockets: { [key: string]: Socket | nu
     auction.stopAllAuction(io);
     console.log('auction stopped:', auction.auctionType);
   });
-  
   
   socket.on('set-default-money-admin', (data: { defaultMoney: number }) => {
     auction.setDefaultMoney(io, data.defaultMoney);
