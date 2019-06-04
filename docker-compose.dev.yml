@@ -28,6 +28,8 @@ services:
       - mysql
     volumes:
       - ./server/src:/home/node/app/src
+      - ./server/log:/home/node/app/log
+      - ./server/index.ts:/home/node/app/index.ts
     networks:
       network:
         aliases:
@@ -67,7 +69,6 @@ services:
       network:
         aliases:
           - elara-mysql-ip-service
-
 
 networks:
   network:

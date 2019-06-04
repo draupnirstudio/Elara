@@ -1,0 +1,9 @@
+{
+  "verbose": true,
+  "watch": [
+    "index.ts",
+    "src/**"
+  ],
+  "ext": "ts",
+  "exec": "ts-node-dev --transpileOnly index.ts"
+}
