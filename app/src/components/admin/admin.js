@@ -138,9 +138,9 @@ class Admin extends React.Component {
       alert(`algorithm deviation changed to ${data.deviation}`);
     });
     
-    socket.on('win-rounds-did-update', (data) => {
-      console.log('win round did update', data);
-      this.setState({winRounds: data});
+    socket.on('last-round-result-did-update', (data) => {
+      console.log('last round result did update', data);
+      this.setState({winRounds: data.winRounds,});
     });
   }
   
@@ -199,13 +199,14 @@ class Admin extends React.Component {
   
   
   render() {
-    const UserBidHistory = this.state.userBidHistory.map((e) =>
-      <tr key={`${e.user}-${e.round}`}>
+    const UserBidHistory = this.state.userBidHistory.map((e, i) =>
+      <tr key={`${e.user}-${e.round}-${i}`}>
         <td>{e.user}</td>
         <td>{e.round}</td>
+        <td>{e.bid}</td>
         <td>{e.price}</td>
         <td>{e.startMoney}</td>
-        <td>{e.bid}</td>
+        
         <td>{e.remainMoney}</td>
       </tr>
     );
@@ -268,7 +269,7 @@ class Admin extends React.Component {
     }
     
     return (
-      <div>
+      <div className="admin-wrapper">
         <div className="item-wrapper">
           <button className="ui button" disabled={this.state.isAuctionStart || this.state.isWaitingAuctionStart}
                   onClick={this.startEnglishAuction}>
@@ -285,11 +286,13 @@ class Admin extends React.Component {
           </button>
         </div>
         
-        <div className="item-wrapper">
-          <span>auction status: </span> {this.state.auctionType}
-        </div>
+        {/*<div className="item-wrapper">*/}
+        {/*  <span>auction status: </span> {this.state.auctionType}*/}
+        {/*</div>*/}
         
         <div className="auction-info-wrapper" style={{display: this.state.isAuctionStart ? 'block' : 'none'}}>
+          
+          <hr/>
           
           <div className="item-wrapper">
             <span>default money:</span>
@@ -321,26 +324,26 @@ class Admin extends React.Component {
                     <label className="cursor-pointer" htmlFor={NormalDistribution}>normal distribution</label>
                   </div>
                 </div>
-                <div className="field">
-                  <div className="ui radio checkbox">
-                    <input type="radio" name="algorithm"
-                           id={UniformDistribution}
-                           onChange={this.handleAlgorithmChange}
-                           checked={this.state.algorithm === UniformDistribution}
-                           value={UniformDistribution}/>
-                    <label className="cursor-pointer" htmlFor={UniformDistribution}>uniform distribution</label>
-                  </div>
-                </div>
-                <div className="field">
-                  <div className="ui radio checkbox">
-                    <input type="radio" name="algorithm"
-                           id={WeibullDistribution}
-                           onChange={this.handleAlgorithmChange}
-                           checked={this.state.algorithm === WeibullDistribution}
-                           value={WeibullDistribution}/>
-                    <label className="cursor-pointer" htmlFor={WeibullDistribution}>weibull distribution</label>
-                  </div>
-                </div>
+                {/*<div className="field">*/}
+                {/*  <div className="ui radio checkbox">*/}
+                {/*    <input type="radio" name="algorithm"*/}
+                {/*           id={UniformDistribution}*/}
+                {/*           onChange={this.handleAlgorithmChange}*/}
+                {/*           checked={this.state.algorithm === UniformDistribution}*/}
+                {/*           value={UniformDistribution}/>*/}
+                {/*    <label className="cursor-pointer" htmlFor={UniformDistribution}>uniform distribution</label>*/}
+                {/*  </div>*/}
+                {/*</div>*/}
+                {/*<div className="field">*/}
+                {/*  <div className="ui radio checkbox">*/}
+                {/*    <input type="radio" name="algorithm"*/}
+                {/*           id={WeibullDistribution}*/}
+                {/*           onChange={this.handleAlgorithmChange}*/}
+                {/*           checked={this.state.algorithm === WeibullDistribution}*/}
+                {/*           value={WeibullDistribution}/>*/}
+                {/*    <label className="cursor-pointer" htmlFor={WeibullDistribution}>weibull distribution</label>*/}
+                {/*  </div>*/}
+                {/*</div>*/}
               </div>
             </div>
           </div>
@@ -348,6 +351,8 @@ class Admin extends React.Component {
           <div className="item-wrapper">
             {AlgorithmConfigPanel}
           </div>
+          
+          <hr/>
           
           <div className="item-wrapper">
             <span>current round: </span> {this.state.currentRound}
@@ -368,6 +373,8 @@ class Admin extends React.Component {
             </div>
           </div>
           
+          <hr/>
+          
           <div className="item-wrapper"
                style={{display: this.state.isAuctionStart ? 'block' : 'none'}}>
             <table className="ui celled table text-center">
@@ -375,9 +382,9 @@ class Admin extends React.Component {
               <tr>
                 <th>userId</th>
                 <th>round</th>
+                <th>bid</th>
                 <th>price</th>
                 <th>startMoney</th>
-                <th>bid</th>
                 <th>remainMoney</th>
               </tr>
               </thead>
@@ -393,8 +400,8 @@ class Admin extends React.Component {
             <table className="ui celled table text-center">
               <thead>
               <tr>
-                <th>userId</th>
-                <th>totalEarned</th>
+                <th>user</th>
+                <th>total win rounds</th>
               </tr>
               </thead>
               <tbody>

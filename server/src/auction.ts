@@ -110,6 +110,8 @@ class Auction {
   }
   
   async startNextRound(io: Server, socket: Socket, thisRoundPrice?: number) {
+    this.updateAuctionResult(io, this.currentRound);
+    
     this.currentRound += 1;
     this.currentPrice = thisRoundPrice || this.nextPrice;
     
@@ -121,9 +123,7 @@ class Auction {
       
       io.sockets.emit('next-round', {
         currentRound: this.currentRound,
-        currentPrice: this.currentPrice,
-        currentBid: 0,
-        hasBid: false
+        currentPrice: this.currentPrice
       });
       
       this.nextPrice = generateAuctionPrice(this.mean, this.deviation, this.algorithm);
@@ -181,13 +181,13 @@ class Auction {
     const currentBidResult = _.findLast(user.bidHistory, (u) => u.round === this.currentRound);
     
     socket.emit('resume-auction', {
+      userId: userId,
       isAuctionStart: this.isAuctionStarted,
       auctionType: this.auctionType,
       money: user.money,
       currentRound: this.currentRound,
       currentPrice: this.currentPrice,
       currentBid: currentBidResult ? currentBidResult.bid : 0,
-      hasBid: !_.isNil(currentBidResult),
       winRound: this.winRounds[userId] || 0
     });
     
@@ -264,7 +264,7 @@ class Auction {
         return;
       }
       
-      let user: User = _.findLast(this.users, user => user.userId === userId) as any;
+      let user: User = _.find(this.users, user => user.userId === userId) as any;
       if (_.isNil(user)) {
         console.error('user not found', this.users.map(u => u.userId), userId);
         socket.emit('bid-error', {
@@ -288,49 +288,53 @@ class Auction {
       }
       
       try {
-        const hasBidQuery = `SELECT count(1) as hasBidCount from ${this.auctionId}_record
-where user = '${userId}' and round = '${this.currentRound}'`;
-        const hasBid = await query(hasBidQuery) as any;
-        
-        if (hasBid[0].hasBidCount > 0) {
-          socket.emit('bid-error', {
-            error: 'you have already bid',
-            code: AuctionErrorCode.UserAlreadyBid
-          });
-          bidLock.unlock();
-          return;
-        }
+//         const hasBidQuery = `SELECT count(1) as hasBidCount from ${this.auctionId}_record
+// where user = '${userId}' and round = '${this.currentRound}'`;
+//         const hasBid = await query(hasBidQuery) as any;
+//
+//         if (hasBid[0].hasBidCount > 0) {
+//           socket.emit('bid-error', {
+//             error: 'you have already bid',
+//             code: AuctionErrorCode.UserAlreadyBid
+//           });
+//           bidLock.unlock();
+//           return;
+//         }
         
         await query(`INSERT INTO ${this.auctionId}_record(user, round, price, bid, startMoney, remainMoney)
                    VALUES (?, ?, ?, ?, ?, ?) `, [userId, this.currentRound, this.currentPrice, bidPrice, user.money, user.money - bidPrice]);
         
-        user.bid(this.currentRound, bidPrice);
+        // user.bid(this.currentRound, bidPrice);
         
         const bidInfo = {
           user: userId,
-          startMoney: user.money + bidPrice,
+          startMoney: user.money,
           bid: bidPrice,
           price: this.currentPrice,
-          remainMoney: user.money,
+          remainMoney: user.money - bidPrice,
           round: this.currentRound
         };
         
         adminSocket && adminSocket.emit('user-did-bid', bidInfo);
         
         this.bidHistory.push(bidInfo);
-        this.updateAuctionResult(io);
+        user.bid(this.currentRound, bidPrice);
         
         this.currentPrice = bidPrice;
         
-        socket.emit('bid-successful', {
-          money: user.money,
-          currentBid: bidPrice,
-          hasBid: true
+        io.sockets.emit('bid-successful', {
+          currentPrice: this.currentPrice,
         });
         
-        io.sockets.emit('current-price-updated', {
-          currentPrice: bidPrice
-        });
+        // socket.emit('bid-successful', {
+        //   money: user.money,
+        //   currentBid: bidPrice,
+        //   hasBid: true
+        // });
+        //
+        // io.sockets.emit('current-price-updated', {
+        //   currentPrice: bidPrice
+        // });
         
         bidLock.unlock();
       } catch (e) {
@@ -345,33 +349,39 @@ where user = '${userId}' and round = '${this.currentRound}'`;
     });
   }
   
-  // TODO: Optimize
-  updateAuctionResult(io: Server) {
-    const result: any[] = [];
-    const price: number[] = [];
-    this.bidHistory.forEach((h) => {
-      const round = h.round;
-      if (result.length < round) {
-        result.push(h.user);
-        price.push(h.bid);
-      } else {
-        if (h.bid > price[round - 1]) {
-          result[round - 1] = h.user;
-          price[round - 1] = h.bid;
-        }
+  updateAuctionResult(io: Server, currentRound: number) {
+    if (currentRound === 0) return;
+    console.log(this.bidHistory);
+    const currentRoundBid = _.filter(this.bidHistory, (e) => e.round === currentRound);
+    console.log(currentRoundBid);
+    
+    if (currentRoundBid.length === 0) {
+      return;
+    }
+    
+    let maxPrice = currentRoundBid[0].bid;
+    let maxUser = currentRoundBid[0].user;
+    currentRoundBid.forEach((e: any) => {
+      if (e.bid > maxPrice) {
+        maxPrice = e.bid;
+        maxUser = e.user;
       }
     });
     
-    this.winRounds = {};
-    result.forEach((r) => {
-      if (this.winRounds[r] === undefined) {
-        this.winRounds[r] = 1;
-      } else {
-        this.winRounds[r] = this.winRounds[r] + 1;
-      }
-    });
+    if (this.winRounds[maxUser] === undefined) {
+      this.winRounds[maxUser] = 1;
+    } else {
+      this.winRounds[maxUser] = this.winRounds[maxUser] + 1;
+    }
+  
+    let user: User = _.find(this.users, user => user.userId === maxUser) as any;
+    user.winBid(maxPrice);
     
-    io.sockets.emit('win-rounds-did-update', this.winRounds);
+    io.sockets.emit('last-round-result-did-update', {
+      lastWinner: maxUser,
+      lastWinBid: maxPrice,
+      winRounds: this.winRounds
+    });
   }
   
 }

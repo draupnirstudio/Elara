@@ -10,10 +10,13 @@ export class User {
   }
   
   bid(round: number, price: number) {
-    this.money -= price;
     this.bidHistory.push({
       round,
       bid: price
     });
+  }
+  
+  winBid(price: number) {
+    this.money -= price;
   }
 }

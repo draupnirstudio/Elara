@@ -12,7 +12,7 @@ class Auction extends React.Component {
     currentRound: 0,
     currentBid: 0,
     money: 0,
-    hasBid: false,
+    // hasBid: false,
     winRound: 0,
   };
   
@@ -38,7 +38,7 @@ class Auction extends React.Component {
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
         currentBid: data.currentBid,
-        hasBid: false
+        // hasBid: false
       });
     });
     
@@ -54,8 +54,8 @@ class Auction extends React.Component {
       this.setState({
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
-        currentBid: data.currentBid,
-        hasBid: data.hasBid
+        currentBid: 0,
+        // hasBid: data.hasBid
       }, () => this.form.reset());
     });
     
@@ -63,12 +63,13 @@ class Auction extends React.Component {
       console.log('auction resumed', data);
       
       this.setState({
+        userId: data.userId,
         isAuctionStart: data.isAuctionStart,
         auctionType: data.auctionType,
         money: data.money,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
-        hasBid: data.hasBid,
+        // hasBid: data.hasBid,
         currentBid: data.currentBid,
         winRound: data.winRound
       });
@@ -77,9 +78,10 @@ class Auction extends React.Component {
     socket.on('bid-successful', (data) => {
       console.log('bid successful', data);
       this.setState({
-        money: data.money,
-        currentBid: data.currentBid,
-        hasBid: data.hasBid
+        currentPrice: data.currentPrice
+        // money: data.money,
+        // currentBid: data.currentBid,
+        // hasBid: data.hasBid
       });
     });
     
@@ -103,16 +105,26 @@ class Auction extends React.Component {
       }
     });
     
-    socket.on('win-rounds-did-update', (data) => {
-      console.log('win round did update', data);
-      this.setState({winRound: data[this.state.userId] || 0});
+    socket.on('last-round-result-did-update', (data) => {
+      console.log('last round result did update', data);
+      this.setState({
+        winRound: data.winRounds[this.state.userId] || 0,
+      });
+      
+      if (data.lastWinner === this.state.userId) {
+        this.setState({
+          money: this.state.money - data.lastWinBid,
+        });
+      }
+      
     });
     
   }
   
-  bid(price) {
+  bid = (price) => {
     socket.emit('bid', {bid: price});
-  }
+    this.setState({currentBid: price});
+  };
   
   render() {
     const isAuctionStart = this.state.isAuctionStart;
@@ -137,7 +149,6 @@ class Auction extends React.Component {
           currentPrice={this.state.currentPrice}
           money={this.state.money}
           currentBid={this.state.currentBid}
-          hasBid={this.state.hasBid}
           userId={this.state.userId}
           winRound={this.state.winRound}
         />;
