@@ -38,6 +38,10 @@ class Auction {
   
   priceList: number[] = [];
   
+  bidHistory: any[] = [];
+  
+  winRounds: any = {};
+  
   async startAllAuction(io: Server, socket: Socket, auctionType: AuctionType) {
     this.isAuctionStarted = true;
     this.auctionType = auctionType;
@@ -48,7 +52,10 @@ class Auction {
       u.money = this.defaultMoney;
       u.bidHistory = [];
     });
+    this.priceList = [];
     this.auctionId = generateAuctionId();
+    this.bidHistory = [];
+    this.winRounds = {};
     
     try {
       await query(`INSERT INTO auctions
@@ -180,8 +187,11 @@ class Auction {
       currentRound: this.currentRound,
       currentPrice: this.currentPrice,
       currentBid: currentBidResult ? currentBidResult.bid : 0,
-      hasBid: !_.isNil(currentBidResult)
+      hasBid: !_.isNil(currentBidResult),
+      winRound: this.winRounds[userId] || 0
     });
+    
+    console.log(this.winRounds, this.winRounds[userId]);
   }
   
   async resumeAuctionAdmin(socket: Socket) {
@@ -191,7 +201,8 @@ class Auction {
         auctionType: this.auctionType,
         currentRound: this.currentRound,
         currentPrice: this.currentPrice,
-        defaultMoney: this.currentRound === 0 ? 0 : this.defaultMoney
+        defaultMoney: this.currentRound === 0 ? 0 : this.defaultMoney,
+        winRounds: this.winRounds
       });
       
       socket.emit('next-round-price-admin', {
@@ -227,6 +238,15 @@ class Auction {
   stopAllAuction(io: Server) {
     this.isAuctionStarted = false;
     this.auctionType = AuctionType.NoAuction;
+    this.currentRound = 0;
+    this.currentPrice = 0;
+    this.nextPrice = 0;
+    this.priceList = [];
+    this.bidHistory = [];
+    this.users.forEach((u) => {
+      u.money = this.defaultMoney;
+      u.bidHistory = [];
+    });
     
     io.sockets && io.sockets.emit('auction-stop');
     logger.info(`auction ${this.auctionId} stopped`);
@@ -286,14 +306,19 @@ where user = '${userId}' and round = '${this.currentRound}'`;
         
         user.bid(this.currentRound, bidPrice);
         
-        adminSocket && adminSocket.emit('user-did-bid', {
+        const bidInfo = {
           user: userId,
           startMoney: user.money + bidPrice,
           bid: bidPrice,
           price: this.currentPrice,
           remainMoney: user.money,
           round: this.currentRound
-        });
+        };
+        
+        adminSocket && adminSocket.emit('user-did-bid', bidInfo);
+        
+        this.bidHistory.push(bidInfo);
+        this.updateAuctionResult(io);
         
         this.currentPrice = bidPrice;
         
@@ -318,6 +343,35 @@ where user = '${userId}' and round = '${this.currentRound}'`;
         bidLock.unlock();
       }
     });
+  }
+  
+  // TODO: Optimize
+  updateAuctionResult(io: Server) {
+    const result: any[] = [];
+    const price: number[] = [];
+    this.bidHistory.forEach((h) => {
+      const round = h.round;
+      if (result.length < round) {
+        result.push(h.user);
+        price.push(h.bid);
+      } else {
+        if (h.bid > price[round - 1]) {
+          result[round - 1] = h.user;
+          price[round - 1] = h.bid;
+        }
+      }
+    });
+    
+    this.winRounds = {};
+    result.forEach((r) => {
+      if (this.winRounds[r] === undefined) {
+        this.winRounds[r] = 1;
+      } else {
+        this.winRounds[r] = this.winRounds[r] + 1;
+      }
+    });
+    
+    io.sockets.emit('win-rounds-did-update', this.winRounds);
   }
   
 }

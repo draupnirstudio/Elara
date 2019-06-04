@@ -13,6 +13,7 @@ class Auction extends React.Component {
     currentBid: 0,
     money: 0,
     hasBid: false,
+    winRound: 0,
   };
   
   constructor(props) {
@@ -68,7 +69,8 @@ class Auction extends React.Component {
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
         hasBid: data.hasBid,
-        currentBid: data.currentBid
+        currentBid: data.currentBid,
+        winRound: data.winRound
       });
     });
     
@@ -88,7 +90,7 @@ class Auction extends React.Component {
     });
     
     socket.on('current-price-updated', (data) => {
-      console.error('current price updated', data);
+      console.log('current price updated', data);
       
       this.setState({currentPrice: data.currentPrice});
     });
@@ -99,6 +101,11 @@ class Auction extends React.Component {
       if (this.state.currentRound === 0) {
         this.setState({money: data.defaultMoney});
       }
+    });
+    
+    socket.on('win-rounds-did-update', (data) => {
+      console.log('win round did update', data);
+      this.setState({winRound: data[this.state.userId] || 0});
     });
     
   }
@@ -132,6 +139,7 @@ class Auction extends React.Component {
           currentBid={this.state.currentBid}
           hasBid={this.state.hasBid}
           userId={this.state.userId}
+          winRound={this.state.winRound}
         />;
       }
       default: {

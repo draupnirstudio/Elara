@@ -124,6 +124,10 @@ export class AuctionForm extends React.Component {
           <td>{this.props.money}</td>
         </tr>
         <tr>
+          <td>Win Round</td>
+          <td>{this.props.winRound}</td>
+        </tr>
+        <tr>
           <td>
             Your Bid
           </td>

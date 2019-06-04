@@ -21,6 +21,7 @@ class Admin extends React.Component {
     mean: 0,
     deviation: 0,
     userBidHistory: [],
+    winRounds: [],
     isWaitingAuctionStart: false,
   };
   
@@ -50,7 +51,9 @@ class Admin extends React.Component {
         auctionType: data.auctionType,
         defaultMoney: data.money,
         currentPrice: data.currentPrice,
-        currentRound: data.currentRound
+        currentRound: data.currentRound,
+        userBidHistory: [],
+        userTotalEarned: [],
       });
     });
     
@@ -86,7 +89,8 @@ class Admin extends React.Component {
         auctionType: data.auctionType,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
-        defaultMoney: data.defaultMoney
+        defaultMoney: data.defaultMoney,
+        winRounds: data.winRounds
       });
     });
     
@@ -132,6 +136,11 @@ class Admin extends React.Component {
     socket.on('algorithm-deviation-changed', (data) => {
       console.log('algorithm deviation changed', data);
       alert(`algorithm deviation changed to ${data.deviation}`);
+    });
+    
+    socket.on('win-rounds-did-update', (data) => {
+      console.log('win round did update', data);
+      this.setState({winRounds: data});
     });
   }
   
@@ -200,6 +209,13 @@ class Admin extends React.Component {
         <td>{e.remainMoney}</td>
       </tr>
     );
+    
+    const UserTotalEarned = Object.keys(this.state.winRounds).map((e) => (
+      <tr key={`${e}`}>
+        <td>{e}</td>
+        <td>{this.state.winRounds[e]}</td>
+      </tr>
+    ));
     
     let AlgorithmConfigPanel;
     switch (this.state.algorithm) {
@@ -370,6 +386,24 @@ class Admin extends React.Component {
               </tbody>
             </table>
           </div>
+          
+          
+          <div className="item-wrapper"
+               style={{display: this.state.isAuctionStart ? 'block' : 'none'}}>
+            <table className="ui celled table text-center">
+              <thead>
+              <tr>
+                <th>userId</th>
+                <th>totalEarned</th>
+              </tr>
+              </thead>
+              <tbody>
+              {UserTotalEarned}
+              </tbody>
+            </table>
+          </div>
+        
+        
         </div>
       </div>
     );
