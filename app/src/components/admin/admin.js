@@ -409,8 +409,6 @@ class Admin extends React.Component {
               </tbody>
             </table>
           </div>
-        
-        
         </div>
       </div>
     );

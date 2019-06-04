@@ -12,7 +12,6 @@ class Auction extends React.Component {
     currentRound: 0,
     currentBid: 0,
     money: 0,
-    // hasBid: false,
     winRound: 0,
   };
   
@@ -38,7 +37,6 @@ class Auction extends React.Component {
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
         currentBid: data.currentBid,
-        // hasBid: false
       });
     });
     
@@ -55,7 +53,6 @@ class Auction extends React.Component {
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
         currentBid: 0,
-        // hasBid: data.hasBid
       }, () => this.form.reset());
     });
     
@@ -69,7 +66,6 @@ class Auction extends React.Component {
         money: data.money,
         currentPrice: data.currentPrice,
         currentRound: data.currentRound,
-        // hasBid: data.hasBid,
         currentBid: data.currentBid,
         winRound: data.winRound
       });
@@ -79,11 +75,18 @@ class Auction extends React.Component {
       console.log('bid successful', data);
       this.setState({
         currentPrice: data.currentPrice
-        // money: data.money,
-        // currentBid: data.currentBid,
-        // hasBid: data.hasBid
       });
     });
+    
+    socket.on('user-bid-successful', (data) => {
+      console.log('user bid successful', data);
+      if (data.user === this.state.userId) {
+        this.setState({
+          currentBid: data.lastBid,
+        });
+      }
+    });
+    
     
     socket.on('bid-error', (data) => {
       console.error('bid error', data);
@@ -123,7 +126,6 @@ class Auction extends React.Component {
   
   bid = (price) => {
     socket.emit('bid', {bid: price});
-    this.setState({currentBid: price});
   };
   
   render() {

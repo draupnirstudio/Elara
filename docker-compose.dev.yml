@@ -58,7 +58,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./db/mysql:/var/lib/mysql
+      - ./db/mysql-dev:/var/lib/mysql
       - ./db/mysql-conf/:/etc/mysql/
     environment:
       MYSQL_DATABASE:  "${DB_DATABASE}"

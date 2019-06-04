@@ -19,10 +19,6 @@ export class AuctionForm extends React.Component {
   }
   
   componentWillReceiveProps(nextProps, nextContext) {
-    // if (this.props.hasBid === false && nextProps.hasBid === true) {
-    //   this.setInfo('You have already bid, please wait for next round.', Pass);
-    // } else
-    
     if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
     }
@@ -35,9 +31,6 @@ export class AuctionForm extends React.Component {
   }
   
   componentDidMount() {
-    // if (this.props.hasBid) {
-    //   this.setInfo('You have already bid, please wait for next round.', Pass);
-    // }
     if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
     } else if (this.props.currentRound === 0) {
@@ -53,10 +46,6 @@ export class AuctionForm extends React.Component {
     this.setState({bid: event.target.value});
     
     const bidPrice = Number(event.target.value);
-    
-    // if (this.props.hasBid) {
-    //   this.setInfo('You have already bid, please wait for next round.', Pass);
-    // }
     if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
     } else if (!_.isNumber(bidPrice) || _.isNaN(bidPrice)) {
@@ -98,9 +87,6 @@ export class AuctionForm extends React.Component {
       bid: 0,
     });
     
-    // if (this.props.hasBid) {
-    //   this.setInfo('You have already bid, please wait for next round.', Pass);
-    // }
     if (this.props.money === 0) {
       this.setInfo('You have run out of money.', Pass);
     } else {

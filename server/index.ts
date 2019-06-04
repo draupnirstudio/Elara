@@ -8,6 +8,7 @@ import * as sio from 'socket.io';
 import {Socket} from 'socket.io';
 import {auctionHandler} from './src/auction-handler';
 import {query} from './src/lib/mysql-connector';
+import logger from './src/lib/logger';
 
 const app: express.Application = express();
 const server = new http.Server(app);
@@ -29,48 +30,53 @@ server.listen(port, '0.0.0.0', () => {
 });
 
 async function bootstrap() {
-  await query(`CREATE TABLE IF NOT EXISTS auctions
-               (
-                   auction_id   varchar(255) primary key,
-                   mean         double       not null,
-                   standard_dev double       not null,
-                   auction_type varchar(255) not null,
-                   algorithm    varchar(255) not null
-               )`);
-  
-  console.log('Auction Table Created.');
-  
-  io.on('connection', (socket: any) => {
-    let userId: string;
+  try {
+    await query(`CREATE TABLE IF NOT EXISTS auctions
+                 (
+                     auction_id   varchar(255) primary key,
+                     mean         double       not null,
+                     standard_dev double       not null,
+                     auction_type varchar(255) not null,
+                     algorithm    varchar(255) not null
+                 )`);
     
-    socket.on('user-connect', (data: any) => {
-      const _userId = _.get(data, 'userId');
+    console.log('Auction Table Created.');
+    
+    io.on('connection', (socket: any) => {
+      let userId: string;
       
-      if (_.isNil(_userId)) {
-        userId = generateUserId();
-        socket.emit('user-id-generated', {
+      socket.on('user-connect', (data: any) => {
+        const _userId = _.get(data, 'userId');
+        
+        if (_.isNil(_userId)) {
+          userId = generateUserId();
+          socket.emit('user-id-generated', {
+            userId
+          });
+        } else {
+          userId = _userId;
+        }
+        
+        sockets[userId] = socket;
+        
+        socket.emit('user-connected', {
           userId
         });
-      } else {
-        userId = _userId;
-      }
-      
-      sockets[userId] = socket;
-      
-      socket.emit('user-connected', {
-        userId
+        
+        console.log('user connected:', userId);
+        
+        auctionHandler(io, sockets, socket, userId);
       });
       
-      console.log('user connected:', userId);
-      
-      auctionHandler(io, sockets, socket, userId);
+      socket.on('disconnect', () => {
+        sockets[userId] = null;
+        console.log('user disconnected:', userId);
+      });
     });
-    
-    socket.on('disconnect', () => {
-      sockets[userId] = null;
-      console.log('user disconnected:', userId);
-    });
-  });
+  } catch (e) {
+    logger.error(e);
+    process.exit(1);
+  }
 }
 
 bootstrap();

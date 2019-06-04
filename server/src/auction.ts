@@ -15,7 +15,6 @@ const bidLock = new Mutex();
 enum AuctionErrorCode {
   UnknownError = 1000,
   BidUserNotFound = 1001,
-  UserAlreadyBid = 1002,
   BidShouldLargerThanCurrentPrice = 1003,
   BidShouldLessOrEqualThanRemainMoney = 1004,
 }
@@ -190,8 +189,6 @@ class Auction {
       currentBid: currentBidResult ? currentBidResult.bid : 0,
       winRound: this.winRounds[userId] || 0
     });
-    
-    console.log(this.winRounds, this.winRounds[userId]);
   }
   
   async resumeAuctionAdmin(socket: Socket) {
@@ -288,23 +285,8 @@ class Auction {
       }
       
       try {
-//         const hasBidQuery = `SELECT count(1) as hasBidCount from ${this.auctionId}_record
-// where user = '${userId}' and round = '${this.currentRound}'`;
-//         const hasBid = await query(hasBidQuery) as any;
-//
-//         if (hasBid[0].hasBidCount > 0) {
-//           socket.emit('bid-error', {
-//             error: 'you have already bid',
-//             code: AuctionErrorCode.UserAlreadyBid
-//           });
-//           bidLock.unlock();
-//           return;
-//         }
-        
         await query(`INSERT INTO ${this.auctionId}_record(user, round, price, bid, startMoney, remainMoney)
                    VALUES (?, ?, ?, ?, ?, ?) `, [userId, this.currentRound, this.currentPrice, bidPrice, user.money, user.money - bidPrice]);
-        
-        // user.bid(this.currentRound, bidPrice);
         
         const bidInfo = {
           user: userId,
@@ -319,22 +301,16 @@ class Auction {
         
         this.bidHistory.push(bidInfo);
         user.bid(this.currentRound, bidPrice);
-        
         this.currentPrice = bidPrice;
         
         io.sockets.emit('bid-successful', {
           currentPrice: this.currentPrice,
         });
         
-        // socket.emit('bid-successful', {
-        //   money: user.money,
-        //   currentBid: bidPrice,
-        //   hasBid: true
-        // });
-        //
-        // io.sockets.emit('current-price-updated', {
-        //   currentPrice: bidPrice
-        // });
+        io.sockets.emit('user-bid-successful', {
+          lastBid: bidPrice,
+          user: userId
+        });
         
         bidLock.unlock();
       } catch (e) {
@@ -351,9 +327,7 @@ class Auction {
   
   updateAuctionResult(io: Server, currentRound: number) {
     if (currentRound === 0) return;
-    console.log(this.bidHistory);
     const currentRoundBid = _.filter(this.bidHistory, (e) => e.round === currentRound);
-    console.log(currentRoundBid);
     
     if (currentRoundBid.length === 0) {
       return;
@@ -373,7 +347,7 @@ class Auction {
     } else {
       this.winRounds[maxUser] = this.winRounds[maxUser] + 1;
     }
-  
+    
     let user: User = _.find(this.users, user => user.userId === maxUser) as any;
     user.winBid(maxPrice);
     
@@ -383,7 +357,6 @@ class Auction {
       winRounds: this.winRounds
     });
   }
-  
 }
 
 export const auction = new Auction();
